@@ -19,6 +19,26 @@ from __future__ import annotations
 
 import numpy as np
 
+def gini(y) -> float:
+    if len(y) == 0:
+        return 0.0
+    classes, counts = np.unique(y, return_counts=True)
+    probabilities = counts / len(y)
+    return 1.0 - np.sum(probabilities ** 2)
+
+def entropy(y) -> float:
+    if len(y) == 0:
+        return 0.0
+    classes, counts = np.unique(y, return_counts=True)
+    probabilities = counts / len(y)
+    return -np.sum(probabilities * np.log2(probabilities + 1e-9))  
+
+def mse(y) -> float:
+    if len(y) == 0:
+        return 0.0
+    y = np.asarray(y, dtype=float)
+    return np.mean((y - y.mean()) ** 2)
+
 
 class Node:
     """One node of the tree. Fill in the fields you need."""
@@ -55,8 +75,13 @@ class DecisionTree:
 
     # --- impurity -----------------------------------------------------------
     def _impurity(self, y) -> float:
-        """Gini / entropy (classification) or MSE/variance (regression)."""
-        raise NotImplementedError("TODO: impurity")
+        if self.criterion == "gini":
+            return gini(y)
+        if self.criterion == "entropy":
+            return entropy(y)
+        if self.criterion == "mse":
+            return mse(y)
+        raise ValueError(f"Unknown criterion: {self.criterion}")
 
     def _best_split(self, X, y):
         """
