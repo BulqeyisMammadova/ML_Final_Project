@@ -174,6 +174,7 @@ class DecisionTree:
         self._n_total = len(y)
         self.n_features_ = X.shape[1]
         self.root = self._grow(X, y, depth=0)
+        self.feature_importances_ = self._compute_importances()
         return self
 
     def print_tree(self, node=None, indent=""):
@@ -199,6 +200,25 @@ class DecisionTree:
         if node.is_leaf():
             return 1
         return self.get_n_leaves(node.left) + self.get_n_leaves(node.right)
+
+    def _compute_importances(self):
+        importances = np.zeros(self.n_features_)   
+
+        def visit(node):
+            if node.is_leaf():
+                return                             
+            importances[node.feature] += node.n_samples * node.gain
+            visit(node.left)
+            visit(node.right)
+
+        visit(self.root)
+
+        total = importances.sum()
+        if total > 0:
+            importances = importances / total      
+        return importances
+
+    
 
     
 
