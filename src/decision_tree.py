@@ -186,6 +186,22 @@ class DecisionTree:
         self.print_tree(node.left, indent + "    ")
         self.print_tree(node.right, indent + "    ")
 
+    def get_depth(self, node=None):
+        if node is None:
+            node = self.root
+        if node.is_leaf():
+            return 0
+        return 1 + max(self.get_depth(node.left), self.get_depth(node.right))
+
+    def get_n_leaves(self, node=None):
+        if node is None:
+            node = self.root
+        if node.is_leaf():
+            return 1
+        return self.get_n_leaves(node.left) + self.get_n_leaves(node.right)
+
+    
+
     def _predict_one(self, x, node: Node):
         raise NotImplementedError("TODO: traverse to a leaf")
 
