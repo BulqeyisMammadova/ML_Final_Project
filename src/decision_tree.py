@@ -203,11 +203,23 @@ class DecisionTree:
     
 
     def _predict_one(self, x, node: Node):
-        raise NotImplementedError("TODO: traverse to a leaf")
+        while not node.is_leaf():
+            if x[node.feature] <= node.threshold:
+                node = node.left             
+            else:
+                node = node.right            
+        return node.value
+
 
     def predict(self, X):
-        raise NotImplementedError("TODO: predict")
+        X = np.asarray(X, dtype=float)
+        if self.task == "regression":
+            return np.array([self._predict_one(x, self.root) for x in X])
+        proba = self.predict_proba(X)
+        return self.classes_[np.argmax(proba, axis=1)]
 
     def predict_proba(self, X):
-        """Classification only: return class probabilities from leaf counts."""
-        raise NotImplementedError("TODO: predict_proba (classification)")
+        if self.task != "classification":
+            raise ValueError("predict_probaa only for classification")
+        X = np.asarray(X, dtype=float)
+        return np.array([self._predict_one(x, self.root) for x in X])
