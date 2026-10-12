@@ -83,6 +83,17 @@ class DecisionTree:
             return mse(y)
         raise ValueError(f"Unknown criterion: {self.criterion}")
 
+    
+    def _impurity_decrease(self, y, y_left, y_right) -> float:  
+        n = len(y)
+        n_left = len(y_left)
+        n_right = len(y_right)
+        child_impurity = (n_left / n) * self._impurity(y_left) \
+                       + (n_right / n) * self._impurity(y_right)
+
+        return self._impurity(y) - child_impurity
+
+    
     def _best_split(self, X, y):
         """
         Search features & candidate thresholds; return the split that
