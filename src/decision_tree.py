@@ -95,12 +95,36 @@ class DecisionTree:
 
     
     def _best_split(self, X, y):
-        """
-        Search features & candidate thresholds; return the split that
-        maximizes impurity decrease (feature, threshold, decrease), or
-        None if no valid split improves things.
-        """
-        raise NotImplementedError("TODO: best split search")
+        n_samples, n_features = X.shape
+        best_feature = None
+        best_threshold = None
+        best_gain = 0.0
+
+        for j in range(n_features):                     
+            values = np.unique(X[:, j])                 
+            if len(values) < 2:                         
+                continue
+            thresholds = (values[:-1] + values[1:]) / 2  
+
+            for t in thresholds:                        
+                left_mask = X[:, j] <= t                
+                n_left = left_mask.sum()
+                n_right = n_samples - n_left
+
+                
+                if n_left < self.min_samples_leaf or n_right < self.min_samples_leaf:
+                    continue
+
+                gain = self._impurity_decrease(y, y[left_mask], y[~left_mask])
+
+                if gain > best_gain:                    
+                    best_gain = gain
+                    best_feature = j
+                    best_threshold = t
+
+        if best_feature is None:
+            return None
+        return best_feature, best_threshold, best_gain
 
     # --- grow / predict -----------------------------------------------------
     def _grow(self, X, y, depth: int) -> Node:
