@@ -48,6 +48,8 @@ class Node:
         self.left = None         # Node
         self.right = None        # Node
         self.value = None        # leaf prediction (class label/proba or mean)
+        self.n_samples = 0        # int: number of samples at this node
+        self.gain = 0.0          # float: impurity decrease from the split
 
     def is_leaf(self) -> bool:
         return self.left is None and self.right is None
@@ -126,16 +128,63 @@ class DecisionTree:
             return None
         return best_feature, best_threshold, best_gain
 
+    def _leaf_value(self, y):
+        if self.task == "regression":
+            return float(np.mean(y))
+        counts = np.array([np.sum(y == c) for c in self.classes_])
+        return counts / len(y)
+
     # --- grow / predict -----------------------------------------------------
     def _grow(self, X, y, depth: int) -> Node:
-        """Recursively build the tree, respecting the stopping rules."""
-        raise NotImplementedError("TODO: recursive grow")
+        
+        node = Node()
+        node.n_samples = len(y)
+        node.value = self._leaf_value(y)     
 
+        if self.max_depth is not None and depth >= self.max_depth:
+            return node                      
+        if len(y) < self.min_samples_split:
+            return node                      
+        if self._impurity(y) == 0:
+            return node                      
+
+        split = self._best_split(X, y)
+        if split is None:
+            return node                      
+        feature, threshold, gain = split
+
+        
+        if (len(y) / self._n_total) * gain < self.min_impurity_decrease:
+            return node
+
+       
+        left_mask = X[:, feature] <= threshold
+        node.feature = feature
+        node.threshold = threshold
+        node.gain = gain
+        node.left = self._grow(X[left_mask], y[left_mask], depth + 1)
+        node.right = self._grow(X[~left_mask], y[~left_mask], depth + 1)
+        return node
+    
     def fit(self, X, y):
         X = np.asarray(X, dtype=float)
         y = np.asarray(y)
+        if self.task == "classification":
+            self.classes_ = np.unique(y)
+        self._n_total = len(y)
+        self.n_features_ = X.shape[1]
         self.root = self._grow(X, y, depth=0)
         return self
+
+    def print_tree(self, node=None, indent=""):
+        if node is None:
+            node = self.root
+        if node.is_leaf():
+            print(f"{indent}leaf: {node.value}  (n={node.n_samples})")
+            return
+        print(f"{indent}[column {node.feature} <= {node.threshold}]  (n={node.n_samples})")
+        self.print_tree(node.left, indent + "    ")
+        self.print_tree(node.right, indent + "    ")
 
     def _predict_one(self, x, node: Node):
         raise NotImplementedError("TODO: traverse to a leaf")
