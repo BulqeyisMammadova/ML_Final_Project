@@ -38,8 +38,41 @@ def clean(df):
       - drop LEAKAGE_COLUMNS.
     Return the cleaned DataFrame.
     """
-    raise NotImplementedError("TODO: clean the data")
+    df=df.copy()
+    df["datetime_scrape_x"]=pd.to_datetime(
+        df["datetime_scrape_x"],
+        format="mixed",
+        utc=True,
+        errors="coerce"
+    )
+    
 
+    df=df.sort_values(
+        by="datetime_scrape_x",
+        ascending=True,
+        kind="mergesort",
+    ).drop_duplicates(
+        keep="last",
+        subset="estate_rel_url",
+        ignore_index=True
+    )
+    df["area_unit"]=df["Sahə"].str.extract(
+        pat=r"(m²|sot)",
+        expand=False)
+    df["area_value"]=df["Sahə"].str.extract(
+        pat=r"(\d+(?:\.\d+)?)",
+        expand=False
+    )
+    df["area_value"]=pd.to_numeric(
+        df["area_value"],
+        errors="coerce"
+    )
+    df["area_m2"] = df["area_value"].copy()
+    df.loc[df["area_unit"] == "sot", "area_m2"] = (
+    df.loc[df["area_unit"] == "sot", "area_m2"] * 100
+    )
+    df=df.drop(columns=LEAKAGE_COLUMNS)
+    return df 
 
 def make_features(df):
     """
