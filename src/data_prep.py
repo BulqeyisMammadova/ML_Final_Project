@@ -8,10 +8,11 @@ calls these functions. Fix your random seed everywhere (see SEED).
 from __future__ import annotations
 
 import numpy as np
+import pandas as pd
 
 # --- Config -----------------------------------------------------------------
 SEED = 42
-DATA_PATH = "data/bina_az_sale.csv"   # change if your filename differs
+DATA_PATH = "data/house_sale.csv"   # change if your filename differs
 
 # Columns that LEAK the target (derived from price). Drop these before training.
 # TODO: list the actual leakage columns you find (e.g. a unit/per-m2 price).
@@ -23,7 +24,8 @@ LEAKAGE_COLUMNS: list[str] = [
 
 def load_raw(path: str = DATA_PATH):
     """Read the raw CSV into a DataFrame (keep UTF-8). Return it unmodified."""
-    raise NotImplementedError("TODO: load the raw CSV")
+    df=pd.read_csv(path,encoding="utf-8")
+    return df
 
 
 def clean(df):
