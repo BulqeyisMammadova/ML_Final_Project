@@ -89,9 +89,10 @@ def clean(df):
         errors="coerce"
     )
     df["land_area_m2"]=df["land_area_value"]*100
+    df=df.drop(columns=LEAKAGE_COLUMNS)
     df=df.drop(columns=["mortgage"])
     df=df.drop(columns=["repair"])
-    df=df.drop(columns=LEAKAGE_COLUMNS)
+    df=df.drop(columns=["bill_of_sale"])
     return df 
 
 def make_features(df):
