@@ -127,6 +127,57 @@ class DecisionTree:
         if best_feature is None:
             return None
         return best_feature, best_threshold, best_gain
+    #Fast split
+    def _impurity_from_counts(self, counts, n):
+        p = counts / n[:, None]                       
+        if self.criterion == "gini":
+            return 1.0 - np.sum(p ** 2, axis=1)       
+        logp = np.log2(np.where(p > 0, p, 1.0))       
+        return -np.sum(p * logp, axis=1)
+
+    def _best_split_fast(self, X, y):
+        if self.task == "regression":
+            return self._best_split(X, y)             
+
+        n_samples, n_features = X.shape
+        parent = self._impurity(y)
+        best_gain, best_feature, best_threshold = 0.0, None, None         
+        y_idx = np.searchsorted(self.classes_, y)
+        Y = np.eye(len(self.classes_))[y_idx]
+        total = Y.sum(axis=0)
+
+        n_left = np.arange(1, n_samples)              
+        n_right = n_samples - n_left
+
+        for j in range(n_features):
+            order = np.argsort(X[:, j], kind="mergesort")
+            x_sorted = X[order, j]
+
+            
+            valid = (x_sorted[:-1] != x_sorted[1:]) \
+                    & (n_left >= self.min_samples_leaf) & (n_right >= self.min_samples_leaf)
+            if not valid.any():
+                continue
+
+            
+            left_counts = np.cumsum(Y[order], axis=0)[:-1]
+            right_counts = total - left_counts
+
+            imp_left = self._impurity_from_counts(left_counts, n_left)
+            imp_right = self._impurity_from_counts(right_counts, n_right)
+            gains = parent - (n_left / n_samples) * imp_left - (n_right / n_samples) * imp_right
+            gains[~valid] = -np.inf
+
+            i = np.argmax(gains)
+            if gains[i] > best_gain:
+                best_gain = gains[i]
+                best_feature = j
+                best_threshold = (x_sorted[i] + x_sorted[i + 1]) / 2
+
+        if best_feature is None:
+            return None
+        return best_feature, best_threshold, best_gain
+    
 
     def _leaf_value(self, y):
         if self.task == "regression":

@@ -112,6 +112,29 @@ def test_string_labels():
     pred = DecisionTree().fit(X_TINY, y).predict([[3, 100], [1, 70]])
     assert list(pred) == ["premium", "standart"]
 
+def test_fast_split_same_as_simple():
+    rng = np.random.default_rng(1)
+    X = rng.normal(size=(300, 4))
+    X[:, 2] = rng.integers(0, 4, 300)                  
+    y_cls = (X[:, 0] + X[:, 2] + rng.normal(size=300) > 1).astype(int)
+    y_reg = X[:, 0] * 3 + X[:, 2] + rng.normal(size=300)
+
+    for task, crit, y in [("classification", "gini", y_cls),
+                          ("classification", "entropy", y_cls),
+                          ("regression", "mse", y_reg)]:
+        t = DecisionTree(task=task, criterion=crit)
+        if task == "classification":
+            t.classes_ = np.unique(y)
+        old = t._best_split(X, y)
+        new = t._best_split_fast(X, y)
+        assert old[0] == new[0]                         
+        assert np.isclose(old[1], new[1])               
+        assert np.isclose(old[2], new[2])   
+
+
+test_fast_split_same_as_simple()
+print("OK: test_fast_split_same_as_simple")
+
 
 
 if __name__ == "__main__":
@@ -123,5 +146,5 @@ if __name__ == "__main__":
             print(f"OK    {test.__name__}")
         except AssertionError as e:
             failed += 1
-            print(f"XƏTA  {test.__name__}: {e}")
-    print(f"\n{len(tests) - failed}/{len(tests)} test keçdi")
+            print(f"Error  {test.__name__}: {e}")
+    print(f"\n{len(tests) - failed}/{len(tests)} test passed")
