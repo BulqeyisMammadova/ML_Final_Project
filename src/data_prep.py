@@ -117,7 +117,10 @@ def make_tier_label(y_price, threshold=None):
     Return (y_tier, threshold).  The threshold must come from TRAIN only
     (no peeking at val/test) to avoid leakage.
     """
-    raise NotImplementedError("TODO: derive the price-tier label")
+    if threshold is None:
+        threshold=y_price.median()
+    y_tier=(y_price>threshold).astype(int)
+    return y_tier, threshold
 
 
 def train_val_test_split(X, y, val_size=0.15, test_size=0.15, seed=SEED):
@@ -160,10 +163,21 @@ def get_splits():
     df=clean(df)
     X, y, feature_names=make_features(df)
     X_train,y_train,X_validation,y_validation,X_test,y_test=train_val_test_split(X,y)
+    # y_tier_train,threshold=make_tier_label(y_train)
+    # y_tier_validation,validation_threshold=make_tier_label(y_validation,threshold)
+    # y_tier_test,test_threshold=make_tier_label(y_test,threshold)
+
     train_medians=X_train.median()
     X_train=X_train.fillna(train_medians)
     X_validation=X_validation.fillna(train_medians)
     X_test=X_test.fillna(train_medians)
     return X_train,y_train,X_validation,y_validation,X_test,y_test
- 
+
     
+    
+def get_classification_splits():
+    X_train,y_train,X_validation,y_validation,X_test,y_test=get_splits()
+    y_tier_train,threshold=make_tier_label(y_train)
+    y_tier_validation,validation_threshold=make_tier_label(y_validation,threshold)
+    y_tier_test,test_threshold=make_tier_label(y_test,threshold)
+    return X_train,y_tier_train,X_validation,y_tier_validation,X_test,y_tier_test
