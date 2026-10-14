@@ -80,6 +80,16 @@ def clean(df):
         floors[1].str.strip(),
         errors="coerce"
     )
+    df["land_area_value"]=df["Torpaq sahəsi"].str.extract(
+        pat=r"(\d+(?:\.\d+)?)",
+        expand=False
+    )
+    df["land_area_value"]=pd.to_numeric(
+        df["land_area_value"],
+        errors="coerce"
+    )
+    df["land_area_m2"]=df["land_area_value"]*100
+
     df=df.drop(columns=["mortgage"])
     df=df.drop(columns=LEAKAGE_COLUMNS)
     return df 
