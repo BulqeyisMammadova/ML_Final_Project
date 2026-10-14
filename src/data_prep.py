@@ -80,7 +80,7 @@ def clean(df):
         floors[1].str.strip(),
         errors="coerce"
     )
-
+    df=df.drop(columns=["mortgage"])
     df=df.drop(columns=LEAKAGE_COLUMNS)
     return df 
 
