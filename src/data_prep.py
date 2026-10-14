@@ -102,7 +102,11 @@ def make_features(df):
       - assemble X (features) and y (target `price`).
     Return (X, y, feature_names).
     """
-    raise NotImplementedError("TODO: build X, y")
+    y=df["price"].copy()
+    numeric_features=["area_m2","floor_number","total_floors","lat","lng"]
+    X=df[numeric_features].copy()
+    feature_names=numeric_features.copy()
+    return X, y, feature_names
 
 
 def make_tier_label(y_price, threshold=None):
@@ -140,6 +144,7 @@ def train_val_test_split(X, y, val_size=0.15, test_size=0.15, seed=SEED):
     return X_train, y_train, X_validation, y_validation, X_test, y_test
 
 
+
 def standardize(X_tr, *others):
     """
     Standardize features using TRAIN statistics only (mean/std from X_tr),
@@ -148,3 +153,17 @@ def standardize(X_tr, *others):
     (Needed for the SVM; trees don't require it.)
     """
     raise NotImplementedError("TODO: standardize using train stats")
+
+
+def get_splits():
+    df=load_raw()
+    df=clean(df)
+    X, y, feature_names=make_features(df)
+    X_train,y_train,X_validation,y_validation,X_test,y_test=train_val_test_split(X,y)
+    train_medians=X_train.median()
+    X_train=X_train.fillna(train_medians)
+    X_validation=X_validation.fillna(train_medians)
+    X_test=X_test.fillna(train_medians)
+    return X_train,y_train,X_validation,y_validation,X_test,y_test
+ 
+    
