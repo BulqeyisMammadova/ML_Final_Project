@@ -121,7 +121,23 @@ def train_val_test_split(X, y, val_size=0.15, test_size=0.15, seed=SEED):
     Deterministic split into train / validation / test.
     Return (X_tr, y_tr, X_val, y_val, X_te, y_te).
     """
-    raise NotImplementedError("TODO: split the data")
+    n=len(y)
+    rng=np.random.default_rng(seed)
+    indexs=rng.permutation(n)
+    n_test=int(n*test_size)
+    n_validation=int(n*val_size)
+    n_train=n-(n_test+n_validation)
+    train_index=indexs[:n_train]
+    validation_index=indexs[n_train:n_train+n_validation]
+    test_index=indexs[n_train+n_validation:]
+    X_train=X.iloc[train_index]
+    y_train=y.iloc[train_index]
+    X_validation=X.iloc[validation_index]
+    y_validation=y.iloc[validation_index]
+    X_test=X.iloc[test_index]
+    y_test=y.iloc[test_index]
+
+    return X_train, y_train, X_validation, y_validation, X_test, y_test
 
 
 def standardize(X_tr, *others):
