@@ -71,6 +71,16 @@ def clean(df):
     df.loc[df["area_unit"] == "sot", "area_m2"] = (
     df.loc[df["area_unit"] == "sot", "area_m2"] * 100
     )
+    floors = df["Mərtəbə"].str.split("/", expand=True)
+    df["floor_number"]=pd.to_numeric(
+        floors[0].str.strip(),
+        errors="coerce"
+    )
+    df["total_floors"]=pd.to_numeric(
+        floors[1].str.strip(),
+        errors="coerce"
+    )
+
     df=df.drop(columns=LEAKAGE_COLUMNS)
     return df 
 
