@@ -106,7 +106,8 @@ class DecisionTree:
             values = np.unique(X[:, j])                 
             if len(values) < 2:                         
                 continue
-            thresholds = (values[:-1] + values[1:]) / 2  
+            thresholds = (values[:-1] + values[1:]) / 2
+            thresholds = np.where(thresholds >= values[1:], values[:-1], thresholds) 
 
             for t in thresholds:                        
                 left_mask = X[:, j] <= t                
@@ -183,6 +184,8 @@ class DecisionTree:
                 best_gain = gains[i]
                 best_feature = j
                 best_threshold = (x_sorted[i] + x_sorted[i + 1]) / 2
+                if best_threshold >= x_sorted[i + 1]:      
+                    best_threshold = x_sorted[i]
 
         if best_feature is None:
             return None
@@ -220,6 +223,8 @@ class DecisionTree:
 
        
         left_mask = X[:, feature] <= threshold
+        if left_mask.all() or not left_mask.any():
+            return node
         node.feature = feature
         node.threshold = threshold
         node.gain = gain
