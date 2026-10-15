@@ -192,8 +192,61 @@ def task_b_gini_vs_entropy():
     plt.close()
     print("Qrafik saxlanıldı: report/figures/tree_gini_vs_entropy.png")
 
+
+def choose_best_params(task, criterion, X_tr, y_tr, X_val, y_val, score_name):
+    best_score = -np.inf
+    best_params = None
+
+    for d in [4, 6, 8, 10, 12, None]:
+        for leaf in [1, 10, 20, 50]:
+            tree = DecisionTree(task=task, criterion=criterion,
+                                max_depth=d, min_samples_leaf=leaf)
+            tree.fit(X_tr, y_tr)
+            pred = tree.predict(X_val)
+
+            if score_name == "R2":
+                score = r2(y_val, pred)
+            else:
+                score = precision_recall_f1(y_val, pred)[2]
+
+            print(f"  max_depth={str(d):4s}  min_samples_leaf={leaf:3d}   val {score_name}={score:.3f}")
+
+            if score > best_score:
+                best_score = score
+                best_params = {"max_depth": d, "min_samples_leaf": leaf}
+
+    print(f"  -> Ən yaxşı: {best_params}, val {score_name}={best_score:.3f}")
+    return best_params
+
+def task_final(run_test=False):
+    # Task A
+    X_tr, y_tr, X_val, y_val, X_te, y_te, names = load_regression_data()
+    print("Task A (regression):")
+    params_a = choose_best_params("regression", "mse", X_tr, y_tr, X_val, y_val, "R2")
+
+    # Task B
+    Xc_tr, yc_tr, Xc_val, yc_val, Xc_te, yc_te, names = load_classification_data()
+    print("Task B (classification):")
+    params_b = choose_best_params("classification", "gini", Xc_tr, yc_tr, Xc_val, yc_val, "F1")
+
+    if not run_test:
+        print("Test hələ işə salınmadı (run_test=False).")
+        return
+
+   
+    tree_a = DecisionTree(task="regression", criterion="mse", **params_a).fit(X_tr, y_tr)
+    p = tree_a.predict(X_te)
+    print(f"TEST Task A:  MAE={mae(y_te, p):.3f}  RMSE={rmse(y_te, p):.3f}  R2={r2(y_te, p):.3f}")
+
+    tree_b = DecisionTree(task="classification", criterion="gini", **params_b).fit(Xc_tr, yc_tr)
+    p = tree_b.predict(Xc_te)
+    prec, rec, f1 = precision_recall_f1(yc_te, p)
+    auc = roc_auc(yc_te, tree_b.predict_proba(Xc_te)[:, 1])
+    print(f"TEST Task B:  precision={prec:.3f}  recall={rec:.3f}  F1={f1:.3f}  ROC-AUC={auc:.3f}")
+
 if __name__ == "__main__":
    # task_a_first_try()
    # task_a_max_depth() 
     #task_a_min_samples_leaf()
-    task_b_gini_vs_entropy()
+    #task_b_gini_vs_entropy()
+    task_final()
