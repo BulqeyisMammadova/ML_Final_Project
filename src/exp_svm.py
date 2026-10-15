@@ -14,8 +14,8 @@ import matplotlib.pyplot as plt
 
 def evaluate_linear_svm(X_train, y_train, X_val, y_val):
     model = PegasosSVM(
-        lambda_=1e-4,
-        n_iters=20_000,
+        lambda_=0.01,
+        n_iters=3 * len(X_train),
         random_state=42
     )
 
