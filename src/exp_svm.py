@@ -79,6 +79,7 @@ def compare_hyperparameters(X_train, y_train, X_val, y_val):
 
                 model.fit(X_train, y_train)
                 y_pred = model.predict(X_val)
+                margin = analyze_margin(model, X_train, y_train)
 
                 results.append({
                     "lambda": lam,
@@ -86,7 +87,9 @@ def compare_hyperparameters(X_train, y_train, X_val, y_val):
                     "learning_rate": lr,
                     "accuracy": accuracy_score(y_val, y_pred),
                     "f1": f1_score(y_val, y_pred),
-                    "objective": model.objective(X_train, y_train)
+                    "objective": model.objective(X_train, y_train),
+                    "weight_norm": margin["weight_norm"],
+                    "margin_width": margin["margin_width"],
                 })
 
     return results
