@@ -60,3 +60,26 @@ def compare_hyperparameters(X_train, y_train, X_val, y_val):
 
     return results
 
+
+def analyze_margin(model, X_train, y_train):
+    y_pm1 = np.where(np.asarray(y_train) == 0, -1, 1)
+
+    weight_norm = np.linalg.norm(model.w)
+
+    margin_width = (
+        2.0 / weight_norm
+        if weight_norm > 0
+        else float("inf")
+    )
+
+    scores = model.decision_function(X_train)
+    margins = y_pm1 * scores
+
+    support_indices = np.where(margins <= 1)[0]
+
+    return {
+        "weight_norm": weight_norm,
+        "margin_width": margin_width,
+        "support_indices": support_indices,
+        "n_support_vectors": len(support_indices)
+    }
