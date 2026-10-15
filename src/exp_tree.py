@@ -154,7 +154,46 @@ def task_a_min_samples_leaf():
     plt.close()
     print("Qrafik saxlanıldı: report/figures/tree_min_samples_leaf_regression.png")
 
+
+
+def task_b_gini_vs_entropy():
+    X_tr, y_tr, X_val, y_val, X_te, y_te, names = load_classification_data()
+    print("premium payı (train):", round(y_tr.mean(), 3))
+
+    depths = list(range(1, 17))
+    f1_scores = {"gini": [], "entropy": []}
+
+    for criterion in ["gini", "entropy"]:
+        for d in depths:
+            tree = DecisionTree(task="classification", criterion=criterion, max_depth=d)
+            tree.fit(X_tr, y_tr)
+            pred = tree.predict(X_val)
+            p, r, f1 = precision_recall_f1(y_val, pred)
+            auc = roc_auc(y_val, tree.predict_proba(X_val)[:, 1])
+            f1_scores[criterion].append(f1)
+            print(f"{criterion:7s} max_depth={d:2d}   precision={p:.3f}  recall={r:.3f}  "
+                  f"F1={f1:.3f}  ROC-AUC={auc:.3f}")
+
+    for criterion in ["gini", "entropy"]:
+        best = int(np.argmax(f1_scores[criterion]))
+        print(f"Ən yaxşı {criterion}: max_depth={depths[best]}, val F1={f1_scores[criterion][best]:.3f}")
+
+    plt.figure(figsize=(7, 4.2))
+    plt.plot(depths, f1_scores["gini"], marker="o", linewidth=2, color="#2a78d6", label="gini")
+    plt.plot(depths, f1_scores["entropy"], marker="o", linewidth=2, color="#eb6834", label="entropy")
+    plt.xlabel("max_depth")
+    plt.ylabel("F1 (validation)")
+    plt.title("Task B: gini və entropy, validation F1")
+    plt.grid(alpha=0.25)
+    plt.legend(frameon=False)
+
+    os.makedirs("report/figures", exist_ok=True)
+    plt.savefig("report/figures/tree_gini_vs_entropy.png", dpi=150, bbox_inches="tight")
+    plt.close()
+    print("Qrafik saxlanıldı: report/figures/tree_gini_vs_entropy.png")
+
 if __name__ == "__main__":
    # task_a_first_try()
    # task_a_max_depth() 
-    task_a_min_samples_leaf()
+    #task_a_min_samples_leaf()
+    task_b_gini_vs_entropy()
