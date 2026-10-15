@@ -5,6 +5,8 @@ from sklearn.metrics import accuracy_score, f1_score
 
 from src.svm import PegasosSVM
 
+import matplotlib.pyplot as plt
+
 
 def evaluate_linear_svm(X_train, y_train, X_val, y_val):
     model = PegasosSVM(
@@ -83,3 +85,44 @@ def analyze_margin(model, X_train, y_train):
         "support_indices": support_indices,
         "n_support_vectors": len(support_indices)
     }
+
+
+def analyze_convergence(
+    X_train,
+    y_train,
+    lambda_=1e-4,
+    max_iters=20000,
+    step=1000
+):
+    iterations = list(range(step, max_iters + 1, step))
+    objectives = []
+
+    for n_iter in iterations:
+        model = PegasosSVM(
+            lambda_=lambda_,
+            n_iters=n_iter,
+            random_state=42,
+            learning_rate="pegasos"
+        )
+
+        model.fit(X_train, y_train)
+
+        loss = model.objective(X_train, y_train)
+        objectives.append(loss)
+
+    return iterations, objectives
+
+
+def plot_convergence(iterations, objectives):
+    plt.figure(figsize=(8, 5))
+
+    plt.plot(iterations, objectives, marker="o")
+
+    plt.xlabel("Number of iterations")
+    plt.ylabel("Training objective J(w, b)")
+    plt.title("Pegasos SVM Convergence")
+
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
