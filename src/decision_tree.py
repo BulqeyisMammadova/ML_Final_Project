@@ -136,17 +136,18 @@ class DecisionTree:
         return -np.sum(p * logp, axis=1)
 
     def _best_split_fast(self, X, y):
-        if self.task == "regression":
-            return self._best_split(X, y)             
-
         n_samples, n_features = X.shape
         parent = self._impurity(y)
-        best_gain, best_feature, best_threshold = 0.0, None, None         
-        y_idx = np.searchsorted(self.classes_, y)
-        Y = np.eye(len(self.classes_))[y_idx]
-        total = Y.sum(axis=0)
+        best_gain, best_feature, best_threshold = 0.0, None, None
 
-        n_left = np.arange(1, n_samples)              
+        if self.task == "classification":
+            y_idx = np.searchsorted(self.classes_, y)
+            Y = np.eye(len(self.classes_))[y_idx]
+            total = Y.sum(axis=0)
+        else:                                                        
+            y_c = y.astype(float) - y.mean()                         
+
+        n_left = np.arange(1, n_samples)
         n_right = n_samples - n_left
 
         for j in range(n_features):
@@ -160,14 +161,23 @@ class DecisionTree:
                 continue
 
             
-            left_counts = np.cumsum(Y[order], axis=0)[:-1]
-            right_counts = total - left_counts
+            if self.task == "classification":
+                left_counts = np.cumsum(Y[order], axis=0)[:-1]
+                right_counts = total - left_counts
+                imp_left = self._impurity_from_counts(left_counts, n_left)
+                imp_right = self._impurity_from_counts(right_counts, n_right)
+            else:                                                    
+                ys = y_c[order]                                      
+                s1 = np.cumsum(ys)[:-1]                              
+                s2 = np.cumsum(ys ** 2)[:-1]                         
+                t1, t2 = ys.sum(), (ys ** 2).sum()                   
+                imp_left = s2 / n_left - (s1 / n_left) ** 2          
+                imp_right = (t2 - s2) / n_right - ((t1 - s1) / n_right) ** 2   
 
-            imp_left = self._impurity_from_counts(left_counts, n_left)
-            imp_right = self._impurity_from_counts(right_counts, n_right)
             gains = parent - (n_left / n_samples) * imp_left - (n_right / n_samples) * imp_right
             gains[~valid] = -np.inf
 
+           
             i = np.argmax(gains)
             if gains[i] > best_gain:
                 best_gain = gains[i]
@@ -199,7 +209,7 @@ class DecisionTree:
         if self._impurity(y) == 0:
             return node                      
 
-        split = self._best_split(X, y)
+        split = self._best_split_fast(X, y)
         if split is None:
             return node                      
         feature, threshold, gain = split
