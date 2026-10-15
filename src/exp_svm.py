@@ -156,6 +156,7 @@ def plot_convergence(iterations, objectives):
 
     plt.grid(True)
     plt.tight_layout()
+    plt.savefig("report/figures/svm_convergence.png", dpi=150)
     plt.show()
 
 
