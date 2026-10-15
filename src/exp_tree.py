@@ -87,7 +87,41 @@ def task_a_max_depth():
     print("Qrafik saxlanıldı: report/figures/tree_max_depth_regression.png")
 
 
+def task_a_min_samples_leaf():
+    X_tr, y_tr, X_val, y_val, X_te, y_te, names = load_regression_data()
+
+    leaf_sizes = [1, 5, 10, 20, 50, 100, 200, 500]
+    train_scores = []
+    val_scores = []
+
+    for m in leaf_sizes:
+        tree = DecisionTree(task="regression", criterion="mse", min_samples_leaf=m)
+        tree.fit(X_tr, y_tr)
+        train_scores.append(r2(y_tr, tree.predict(X_tr)))
+        val_scores.append(r2(y_val, tree.predict(X_val)))
+        print(f"min_samples_leaf={m:3d}   train R²={train_scores[-1]:.3f}   "
+              f"val R²={val_scores[-1]:.3f}   leaf sayı={tree.get_n_leaves()}")
+
+    best_leaf = leaf_sizes[int(np.argmax(val_scores))]
+    print("Ən yaxşı min_samples_leaf (validation-a görə):", best_leaf)
+
+    plt.figure(figsize=(7, 4.2))
+    plt.plot(leaf_sizes, train_scores, marker="o", linewidth=2, color="#2a78d6", label="train")
+    plt.plot(leaf_sizes, val_scores, marker="o", linewidth=2, color="#eb6834", label="validation")
+    plt.axvline(best_leaf, color="gray", linestyle="--", linewidth=1)
+    plt.xscale("log")
+    plt.xlabel("min_samples_leaf (log şkala)")
+    plt.ylabel("R² (log qiymət)")
+    plt.title("Task A: min_samples_leaf artdıqca train və validation R²")
+    plt.grid(alpha=0.25)
+    plt.legend(frameon=False)
+
+    os.makedirs("report/figures", exist_ok=True)
+    plt.savefig("report/figures/tree_min_samples_leaf_regression.png", dpi=150, bbox_inches="tight")
+    plt.close()
+    print("Qrafik saxlanıldı: report/figures/tree_min_samples_leaf_regression.png")
 
 if __name__ == "__main__":
-    task_a_first_try()
-    task_a_max_depth() 
+   # task_a_first_try()
+   # task_a_max_depth() 
+    task_a_min_samples_leaf()
