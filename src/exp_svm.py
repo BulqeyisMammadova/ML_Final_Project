@@ -1,7 +1,11 @@
 
 import numpy as np
 
+from sklearn.linear_model import SGDClassifier
 from sklearn.metrics import accuracy_score, f1_score
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
 
 from src.svm import PegasosSVM, RFFPegasosSVM
 
@@ -29,6 +33,31 @@ def evaluate_linear_svm(X_train, y_train, X_val, y_val):
     }
 
     return model, results
+
+
+def evaluate_sklearn_baselines(X_train, y_train, X_val, y_val):
+    models = {
+        "linear_svc": Pipeline([
+            ("scaler", StandardScaler()),
+            ("model", SVC(kernel="linear", random_state=42)),
+        ]),
+        "sgd_hinge": Pipeline([
+            ("scaler", StandardScaler()),
+            ("model", SGDClassifier(loss="hinge", random_state=42)),
+        ]),
+    }
+
+    results = {}
+    for name, model in models.items():
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_val)
+        results[name] = {
+            "model": model,
+            "accuracy": accuracy_score(y_val, y_pred),
+            "f1": f1_score(y_val, y_pred),
+        }
+
+    return results
 
 
 def compare_hyperparameters(X_train, y_train, X_val, y_val):
