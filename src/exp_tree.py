@@ -1,5 +1,7 @@
 import os
 import numpy as np
+import time
+from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 
 import matplotlib.pyplot as plt
 
@@ -218,16 +220,74 @@ def choose_best_params(task, criterion, X_tr, y_tr, X_val, y_val, score_name):
     print(f"  -> Ən yaxşı: {best_params}, val {score_name}={best_score:.3f}")
     return best_params
 
+
+def compare_with_sklearn(task, params, X_tr, y_tr, X_val, y_val):
+    if task == "regression":
+        ours = DecisionTree(task="regression", criterion="mse", **params)
+    else:
+        ours = DecisionTree(task="classification", criterion="gini", **params)
+
+    start = time.perf_counter()
+    ours.fit(X_tr, y_tr)
+    our_fit_time = time.perf_counter() - start
+
+    start = time.perf_counter()
+    our_pred = ours.predict(X_val)
+    our_pred_time = time.perf_counter() - start
+
+
+    if task == "regression":
+        theirs = DecisionTreeRegressor(criterion="squared_error", random_state=0, **params)
+    else:
+        theirs = DecisionTreeClassifier(criterion="gini", random_state=0, **params)
+
+    start = time.perf_counter()
+    theirs.fit(X_tr, y_tr)
+    sk_fit_time = time.perf_counter() - start
+
+    start = time.perf_counter()
+    sk_pred = theirs.predict(X_val)
+    sk_pred_time = time.perf_counter() - start
+
+    if task == "regression":
+        name = "R2"
+        our_score = r2(y_val, our_pred)
+        sk_score = r2(y_val, sk_pred)
+    else:
+        name = "F1"
+        our_score = precision_recall_f1(y_val, our_pred)[2]
+        sk_score = precision_recall_f1(y_val, sk_pred)[2]
+
+    same = np.mean(np.isclose(our_pred, sk_pred))
+
+    print(f"  bizim:   val {name}={our_score:.3f}  fit={our_fit_time:.2f}s  "
+          f"predict={our_pred_time:.3f}s  leaves={ours.get_n_leaves()}")
+    print(f"  sklearn: val {name}={sk_score:.3f}  fit={sk_fit_time:.2f}s  "
+          f"predict={sk_pred_time:.3f}s  leaves={theirs.get_n_leaves()}")
+    print(f"  Proqnozların {same * 100:.1f}%-i eynidir. "
+          f"sklearn {our_fit_time / sk_fit_time:.0f} dəfə sürətlidir.")
+
+
+
+
+
+
+
+
+
 def task_final(run_test=False):
     # Task A
     X_tr, y_tr, X_val, y_val, X_te, y_te, names = load_regression_data()
     print("Task A (regression):")
     params_a = choose_best_params("regression", "mse", X_tr, y_tr, X_val, y_val, "R2")
+    compare_with_sklearn("regression", params_a, X_tr, y_tr, X_val, y_val)
 
     # Task B
     Xc_tr, yc_tr, Xc_val, yc_val, Xc_te, yc_te, names = load_classification_data()
     print("Task B (classification):")
     params_b = choose_best_params("classification", "gini", Xc_tr, yc_tr, Xc_val, yc_val, "F1")
+    compare_with_sklearn("classification", params_b, Xc_tr, yc_tr, Xc_val, yc_val)
+
 
     if not run_test:
         print("Test hələ işə salınmadı (run_test=False).")
