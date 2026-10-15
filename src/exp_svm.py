@@ -3,7 +3,7 @@ import numpy as np
 
 from sklearn.metrics import accuracy_score, f1_score
 
-from src.svm import PegasosSVM
+from src.svm import PegasosSVM, RFFPegasosSVM
 
 import matplotlib.pyplot as plt
 
@@ -126,3 +126,32 @@ def plot_convergence(iterations, objectives):
     plt.tight_layout()
     plt.show()
 
+
+def compare_rff_hyperparameters(X_train, y_train, X_val, y_val):
+    results = []
+
+    gammas = [0.01, 0.1, 1.0]
+    lambdas = [1e-2, 1e-3, 1e-4]
+
+    for gamma in gammas:
+        for lam in lambdas:
+            model = RFFPegasosSVM(
+                gamma=gamma,
+                n_components=500,
+                lambda_=lam,
+                n_iters=20000,
+                random_state=42
+            )
+
+            model.fit(X_train, y_train)
+            y_pred = model.predict(X_val)
+
+            results.append({
+                "gamma": gamma,
+                "lambda": lam,
+                "accuracy": accuracy_score(y_val, y_pred),
+                "f1": f1_score(y_val, y_pred),
+                "objective": model.objective(X_train, y_train)
+            })
+
+    return results
