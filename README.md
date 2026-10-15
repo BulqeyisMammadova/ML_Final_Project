@@ -66,7 +66,7 @@ python -m src.run_all
 The last command performs cleaning, a seeded 70/15/15 split, validation-only
 model selection, three-fold cross-validation on the training rows, and one
 final evaluation on the held-out test rows. It writes full metrics and
-selected settings to `results/summary.json` and four figures to
+selected settings to `results/summary.json` and five figures to
 `report/figures/`. Both locations are generated locally and ignored by Git.
 Use `python -m src.run_all --quick` for a 3,000-row smoke test; it writes to
 `results/summary_quick.json` and `report/figures/quick/` so it cannot replace

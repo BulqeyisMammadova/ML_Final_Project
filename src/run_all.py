@@ -292,6 +292,25 @@ def _save_figures(tuning, test_results, regression_predictions, test_price,
     fig.savefig(figure_dir / "validation_curves.png", dpi=160)
     plt.close(fig)
 
+    fig, axes = plt.subplots(2, 1, figsize=(3.6, 4.8))
+    for leaf in sorted({row["min_samples_leaf"] for row in tuning["regression_tree"]}):
+        rows = [row for row in tuning["regression_tree"] if row["min_samples_leaf"] == leaf]
+        axes[0].plot([row["max_depth"] for row in rows],
+                     [row["log_RMSE"] for row in rows], marker="o", label=f"leaf={leaf}")
+        for criterion in ("gini", "entropy"):
+            rows = [row for row in tuning["classification_tree"]
+                    if row["min_samples_leaf"] == leaf and row["criterion"] == criterion]
+            axes[1].plot([row["max_depth"] for row in rows],
+                         [row["F1"] for row in rows], marker="o",
+                         label=f"{criterion}, leaf={leaf}")
+    axes[0].set(title="Regression validation", xlabel="max_depth", ylabel="log RMSE")
+    axes[1].set(title="Tier validation", xlabel="max_depth", ylabel="F1")
+    axes[0].legend(fontsize=7)
+    axes[1].legend(fontsize=7)
+    fig.tight_layout()
+    fig.savefig(figure_dir / "tree_validation_report.png", dpi=180)
+    plt.close(fig)
+
     names = [name for name, row in test_results.items() if "confusion_matrix" in row]
     fig, axes = plt.subplots(2, 3, figsize=(10, 6))
     for ax, name in zip(axes.flat, names):
