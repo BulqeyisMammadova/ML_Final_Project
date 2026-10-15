@@ -3,7 +3,8 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
-from src.data_prep import get_splits
+
+from src.data_prep import get_splits, get_classification_splits
 from src.decision_tree import DecisionTree
 
 
@@ -17,6 +18,27 @@ def rmse(y, p):
 
 def r2(y, p):
     return 1 - np.sum((y - p) ** 2) / np.sum((y - y.mean()) ** 2)
+
+def precision_recall_f1(y, p):
+    tp = np.sum((p == 1) & (y == 1))     
+    fp = np.sum((p == 1) & (y == 0))     
+    fn = np.sum((p == 0) & (y == 1))     
+    precision = tp / (tp + fp) if tp + fp > 0 else 0.0
+    recall = tp / (tp + fn) if tp + fn > 0 else 0.0
+    f1 = 2 * precision * recall / (precision + recall) if precision + recall > 0 else 0.0
+    return precision, recall, f1
+
+
+def roc_auc(y, scores):
+    pos = scores[y == 1]          
+    neg = scores[y == 0]          
+
+    points = 0.0
+    for p in pos:                                  
+        points += np.sum(neg < p)                  
+        points += 0.5 * np.sum(neg == p)           
+
+    return points / (len(pos) * len(neg))
 
 
 # --- Data -------------------------------------------------------------------
@@ -34,6 +56,17 @@ def load_regression_data():
     y_val = np.log(y_val.to_numpy())
     y_te = np.log(y_te.to_numpy())
 
+    return X_tr, y_tr, X_val, y_val, X_te, y_te, names
+
+def load_classification_data():
+    X_tr, y_tr, X_val, y_val, X_te, y_te = get_classification_splits()
+    names = list(X_tr.columns)
+    X_tr = X_tr.to_numpy(dtype=float)
+    X_val = X_val.to_numpy(dtype=float)
+    X_te = X_te.to_numpy(dtype=float)
+    y_tr = y_tr.to_numpy()
+    y_val = y_val.to_numpy()
+    y_te = y_te.to_numpy()
     return X_tr, y_tr, X_val, y_val, X_te, y_te, names
 
 
