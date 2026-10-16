@@ -155,7 +155,15 @@ def standardize(X_tr, *others):
     Return the scaled arrays in the same order as given.
     (Needed for the SVM; trees don't require it.)
     """
-    raise NotImplementedError("TODO: standardize using train stats")
+    train_mean=X_tr.mean()
+    train_std=X_tr.std(ddof=0).replace(0,1)
+    X_tr_scaled=(X_tr-train_mean)/train_std
+    other_scoled=list()
+    for element in others:
+        scaled_element=(element-train_mean)/train_std
+        other_scoled.append(scaled_element)
+    return (X_tr_scaled, *other_scoled)
+
 
 
 def get_splits():
