@@ -120,18 +120,61 @@ Describe your impurity criteria (Gini / entropy / MSE reduction), the
 split search, recursion, leaf rule, and hyperparameters.
 
 \subsection{Support-vector machine (from scratch)}
-State the objective and the Pegasos update you implemented:
+We map the standard and premium labels to $-1$ and $+1$, respectively,
+and minimize the regularized hinge-loss objective:
 \begin{equation}
   J(\mathbf{w},b)=\tfrac{\lambda}{2}\lVert\mathbf{w}\rVert^{2}
   +\tfrac{1}{n}\sum_{i=1}^{n}\max\!\big(0,\,1-y_i(\mathbf{w}^{\top}\mathbf{x}_i+b)\big).
 \end{equation}
-Explain the learning-rate schedule, feature scaling, and your non-linear
-extension (kernelised Pegasos or random Fourier features), if any.
+For the linear model, the margin width is $2/\lVert\mathbf{w}\rVert_2$.
+We identify training points on or inside the margin as support vectors:
+\begin{equation}
+  y_i(\mathbf{w}^{\top}\mathbf{x}_i+b)\leq 1.
+\end{equation}
+At update $t$, Pegasos samples training example $i_t$ and uses
+$\eta_t=1/(\lambda t)$. Its stochastic updates are
+\begin{align}
+  \mathbf{w}_t &= (1-\eta_t\lambda)\mathbf{w}_{t-1}
+    +\eta_t y_{i_t}\mathbf{x}_{i_t}\,
+      \mathbb{1}\!\left[y_{i_t}(\mathbf{w}_{t-1}^{\top}\mathbf{x}_{i_t}
+      +b_{t-1})<1\right],\\
+  b_t &= b_{t-1}+\eta_t y_{i_t}\,
+      \mathbb{1}\!\left[y_{i_t}(\mathbf{w}_{t-1}^{\top}\mathbf{x}_{i_t}
+      +b_{t-1})<1\right].
+\end{align}
+The bias is unregularized: it is updated on margin violations but is not
+multiplied by the weight-decay factor. For the nonlinear model, random
+Fourier features approximate an RBF kernel:
+\begin{equation}
+  \begin{aligned}
+    \mathbf{z}(\mathbf{x}) &= [z_j(\mathbf{x})]_{j=1}^{D},\\
+    z_j(\mathbf{x}) &= \sqrt{\tfrac{2}{D}}\cos(\phi_j(\mathbf{x})),\\
+    \phi_j(\mathbf{x}) &= \boldsymbol{\omega}_j^{\top}\mathbf{x}+c_j,\\
+    \boldsymbol{\omega}_j &\sim \mathcal{N}(0,2\gamma\mathbf{I}),\\
+    c_j &\sim \mathcal{U}(0,2\pi), \quad j=1,\ldots,D.
+  \end{aligned}
+\end{equation}
+Pegasos is applied to $\mathbf{z}(\mathbf{x})$; its transformed-space
+coefficients are not interpreted as original-feature importance.
 
 \section{Experimental Setup}
 Metrics (RMSE/MAE/$R^2$ for regression; precision/recall/F1/AUC for
 classification), hyperparameter search protocol, seeds, and the
 scikit-learn baselines you compared against (with matched settings).
+
+\subsection{SVM protocol}
+We used the deterministic split with seed 42. Missing feature values were
+imputed using training-set medians, the premium threshold was the median
+training price, and a $\texttt{StandardScaler}$ was fitted on training
+features only and then applied to validation features. The five numeric
+inputs were area, floor number, total floors, latitude, and longitude.
+Both models used the same transformed training and validation partitions.
+Linear Pegasos used $\lambda=0.01$, $3n_{\mathrm{train}}$ updates, and
+seed 42. The RFF model used $\gamma=1$, $D=500$, $\lambda=10^{-4}$,
+20,000 updates, and seed 42. Reported model metrics and error analyses
+below are validation results. The convergence trace uses the training
+objective, recorded every 1,000 updates during one 20,000-update run with
+$\lambda=0.01$.
 
 \section{Results}
 Lead with a results table; back every claim with a number or figure.
@@ -160,6 +203,133 @@ Lead with a results table; back every claim with a number or figure.
   \caption{One clear figure beats ten decorative ones.}
   \label{fig:main}
 \end{figure}
+
+\subsection{SVM validation results and analysis}
+Table~\ref{tab:svm-models} reports validation performance for the selected
+linear and RFF models. The RFF model reached 0.7502 accuracy and 0.7424
+F1, compared with 0.6689 accuracy and 0.7074 F1 for Linear Pegasos.
+These are validation metrics, not final test-set estimates.
+
+\begin{table}[t]
+  \centering
+  \caption{Selected SVM validation performance.}
+  \label{tab:svm-models}
+  \begin{tabular}{@{}lrr@{}}
+    \toprule
+    Model & Accuracy & F1 \\
+    \midrule
+    Linear Pegasos & 0.6689 & 0.7074 \\
+    RFF Pegasos    & 0.7502 & 0.7424 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Figure~\ref{fig:svm-convergence} shows that the recorded training
+objective fell overall from 1.0000 to 0.7807 over 20,000 updates, with
+small non-monotonic fluctuations. Across the tested regularization values,
+the widest measured margin occurred at $\lambda=0.01$; validation accuracy
+was highest among these three settings at the same value.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{figures/svm_convergence.png}
+  \caption{Linear Pegasos training objective during one seeded run.}
+  \label{fig:svm-convergence}
+\end{figure}
+
+\begin{table}[t]
+  \centering
+  \caption{Linear Pegasos validation results by regularization strength.}
+  \label{tab:svm-lambda}
+  \begin{tabular}{@{}rrrr@{}}
+    \toprule
+    $\lambda$ & Margin width & Accuracy & F1 \\
+    \midrule
+    0.01   & 1.9036 & 0.6689 & 0.7074 \\
+    0.001  & 1.4854 & 0.6498 & 0.6755 \\
+    0.0001 & 0.4752 & 0.6605 & 0.6736 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{figures/svm_margin_lambda.png}
+  \caption{Margin width and validation accuracy across $\lambda$ values.}
+  \label{fig:svm-lambda}
+\end{figure}
+
+Figures~\ref{fig:svm-linear-cm} and~\ref{fig:svm-rff-cm} show the
+validation confusion matrices. Linear Pegasos produced 2,294 false positives and 907 false
+negatives; RFF produced 1,119 false positives and 1,296 false negatives.
+RFF improved validation accuracy by approximately 8.13 percentage points
+and reduced false positives, but it increased false negatives; therefore,
+it did not improve every error type. Figure~\ref{fig:svm-error-comparison}
+summarizes the validation error counts.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{figures/svm_error_comparison.png}
+  \caption{False-positive and false-negative counts on the validation set.}
+  \label{fig:svm-error-comparison}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{figures/svm_linear_vs_rff.png}
+  \caption{Validation accuracy and F1 for the selected SVM models.}
+  \label{fig:svm-model-comparison}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{figures/svm_linear_confusion_matrix.png}
+  \caption{Linear Pegasos validation confusion matrix.}
+  \label{fig:svm-linear-cm}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{figures/svm_rff_confusion_matrix.png}
+  \caption{RFF Pegasos validation confusion matrix.}
+  \label{fig:svm-rff-cm}
+\end{figure}
+
+The Linear Pegasos coefficients below are signed weights for standardized
+inputs, ordered by absolute magnitude. Their signs describe the direction
+of change in the model score when a standardized input increases; they do
+not establish causal effects.
+\begin{table}[t]
+  \centering
+  \caption{Linear Pegasos coefficients on standardized inputs.}
+  \label{tab:svm-coefficients}
+  \begin{tabular}{@{}lrr@{}}
+    \toprule
+    Feature & Coefficient & Absolute value \\
+    \midrule
+    Total floors & $+0.8578$ & 0.8578 \\
+    Latitude     & $-0.5758$ & 0.5758 \\
+    Area         & $+0.1454$ & 0.1454 \\
+    Longitude    & $+0.1212$ & 0.1212 \\
+    Floor number & $-0.0265$ & 0.0265 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+For the validation errors, false-positive houses had median area 77,
+floor number 7, and total floors 16, compared with 70, 5, and 9 among
+correctly classified standard houses; their median latitude/longitude
+were 40.3980/49.8708 versus 40.4087/49.8476. False negatives had median
+area 130, floor number 5, and total floors 9, compared with 143, 7, and
+16 among correctly classified premium houses; their median coordinates
+were 40.3963/49.8531 versus 40.3932/49.8467. These are descriptive
+validation-set differences, not causal explanations.
+
+As a small implementation sanity check, both Pegasos and
+$\texttt{SGDClassifier(loss=hinge)}$ achieved 100\% accuracy on a tiny,
+separable synthetic validation set with training-fitted standardization.
+This synthetic check is distinct from the real-data validation results
+above and is not a benchmark comparison.
 
 \section{Discussion and Limitations}
 Where and why each model fails (luxury outliers, sparse districts,
