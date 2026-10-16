@@ -2,6 +2,8 @@ import os
 import numpy as np
 import time
 from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
+from src.random_forest import RandomForest
+from sklearn.ensemble import RandomForestRegressor
 
 import matplotlib.pyplot as plt
 
@@ -346,6 +348,54 @@ def error_near_threshold(tree, X_val, y_val):
     print(f"  Həddən uzaq evlər:         {(~near).sum():5d} ev, səhv = {wrong[~near].mean() * 100:.1f}%")
 
 
+
+
+def forest_curve(X_tr, y_tr, X_val, y_val, single_tree_score):
+    start = time.perf_counter()
+    forest = RandomForest(task="regression", n_trees=50, max_features=2, min_samples_leaf=5)
+    forest.fit(X_tr, y_tr)
+    our_time = time.perf_counter() - start
+
+    
+    all_preds = np.array([tree.predict(X_val) for tree in forest.trees])
+    n_trees = list(range(1, 51))
+    scores = []
+    for k in n_trees:
+        pred_k = all_preds[:k].mean(axis=0)
+        scores.append(r2(y_val, pred_k))
+
+    
+    start = time.perf_counter()
+    sk = RandomForestRegressor(n_estimators=50, max_features=2, min_samples_leaf=5, random_state=0)
+    sk.fit(X_tr, y_tr)
+    sk_time = time.perf_counter() - start
+    sk_score = r2(y_val, sk.predict(X_val))
+
+    print(f"  tək ağac:       val R2={single_tree_score:.3f}")
+    print(f"  bizim meşə:     val R2={scores[0]:.3f} (1 ağac) -> {scores[-1]:.3f} (50 ağac), fit={our_time:.0f}s")
+    print(f"  sklearn meşəsi: val R2={sk_score:.3f}, fit={sk_time:.1f}s")
+
+    
+    plt.figure(figsize=(7, 4.2))
+    plt.plot(n_trees, scores, linewidth=2, color="#2a78d6", label="bizim random forest")
+    plt.axhline(single_tree_score, color="gray", linestyle="--", label="tək ağac (9.6)")
+    plt.axhline(sk_score, color="#eb6834", linestyle=":", linewidth=2, label="sklearn random forest")
+    plt.xlabel("Ağac sayı")
+    plt.ylabel("R² (validation)")
+    plt.title("Random forest: ağac sayı artdıqca validation R²")
+    plt.grid(alpha=0.25)
+    plt.legend(frameon=False)
+    os.makedirs("report/figures", exist_ok=True)
+    plt.savefig("report/figures/forest_n_trees.png", dpi=150, bbox_inches="tight")
+    plt.close()
+    print("  Qrafik saxlanıldı: report/figures/forest_n_trees.png")
+    return forest
+
+
+
+
+
+
 def task_final(run_test=False):
     # Task A
     X_tr, y_tr, X_val, y_val, X_te, y_te, names = load_regression_data()
@@ -354,6 +404,8 @@ def task_final(run_test=False):
     tree_a = compare_with_sklearn("regression", params_a, X_tr, y_tr, X_val, y_val)
     plot_feature_importance(tree_a, names, "Task A: qiymət", "tree_importance_regression.png")
     error_analysis(tree_a, X_val, y_val, names)
+    print("Bonus: random forest (Task A):")
+    forest = forest_curve(X_tr, y_tr, X_val, y_val, r2(y_val, tree_a.predict(X_val)))
 
     # Task B
     Xc_tr, yc_tr, Xc_val, yc_val, Xc_te, yc_te, names = load_classification_data()
@@ -372,6 +424,8 @@ def task_final(run_test=False):
     tree_a = DecisionTree(task="regression", criterion="mse", **params_a).fit(X_tr, y_tr)
     p = tree_a.predict(X_te)
     print(f"TEST Task A:  MAE={mae(y_te, p):.3f}  RMSE={rmse(y_te, p):.3f}  R2={r2(y_te, p):.3f}")
+    p = forest.predict(X_te)
+    print(f"TEST Forest:  MAE={mae(y_te, p):.3f}  RMSE={rmse(y_te, p):.3f}  R2={r2(y_te, p):.3f}")
 
     tree_b = DecisionTree(task="classification", criterion="gini", **params_b).fit(Xc_tr, yc_tr)
     p = tree_b.predict(Xc_te)
