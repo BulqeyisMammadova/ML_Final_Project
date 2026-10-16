@@ -266,13 +266,84 @@ def compare_with_sklearn(task, params, X_tr, y_tr, X_val, y_val):
           f"predict={sk_pred_time:.3f}s  leaves={theirs.get_n_leaves()}")
     print(f"  Proqnozların {same * 100:.1f}%-i eynidir. "
           f"sklearn {our_fit_time / sk_fit_time:.0f} dəfə sürətlidir.")
+    return ours
+
+
+
+def plot_feature_importance(tree, names, title, filename):
+    importances = tree.feature_importances_
+    order = np.argsort(importances)            
+
+    print("  Feature importance:")
+    for i in order[::-1]:                      
+        print(f"    {names[i]:15s} {importances[i]:.3f}")
+
+    plt.figure(figsize=(7, 4))
+    plt.barh([names[i] for i in order], importances[order], color="#2a78d6")
+    plt.xlabel("Feature importance")
+    plt.title(title)
+    plt.grid(axis="x", alpha=0.25)
+
+    os.makedirs("report/figures", exist_ok=True)
+    plt.savefig("report/figures/" + filename, dpi=150, bbox_inches="tight")
+    plt.close()
+    print("  Qrafik saxlanıldı: report/figures/" + filename)
 
 
 
 
 
+def error_analysis(tree, X_val, y_val, names):
+    pred = tree.predict(X_val)
+    true_azn = np.exp(y_val)                      
+    pred_azn = np.exp(pred)
+    pct_error = np.abs(pred_azn - true_azn) / true_azn * 100
+
+    print("  Orta faiz səhvi (median):", round(np.median(pct_error), 1), "%")
+
+    print("  Qiymət qrupuna görə səhv:")
+    edges = np.percentile(true_azn, [0, 20, 40, 60, 80, 100])
+    for k in range(5):
+        low, high = edges[k], edges[k + 1]
+        in_group = (true_azn >= low) & (true_azn <= high)
+        print(f"    {low:>10,.0f} - {high:>10,.0f} AZN:  median səhv = "
+              f"{np.median(pct_error[in_group]):5.1f}%")
+
+    print("  Ən böyük 5 səhv:")
+    area = X_val[:, names.index("area_m2")]
+    worst = np.argsort(pct_error)[::-1][:5]
+    for i in worst:
+        print(f"    sahə={area[i]:7.0f} m²   əsl={true_azn[i]:>12,.0f}   "
+              f"proqnoz={pred_azn[i]:>10,.0f}   səhv={pct_error[i]:6.0f}%")
 
 
+    plt.figure(figsize=(5.5, 5.5))
+    plt.scatter(y_val, pred, s=3, alpha=0.25, color="#2a78d6")
+    lo, hi = y_val.min(), y_val.max()
+    plt.plot([lo, hi], [lo, hi], color="#eb6834", linewidth=2, label="mükəmməl proqnoz")
+    plt.xlabel("Əsl qiymət (log)")
+    plt.ylabel("Proqnoz (log)")
+    plt.title("Task A: əsl və proqnoz (validation)")
+    plt.legend(frameon=False)
+    plt.grid(alpha=0.25)
+    os.makedirs("report/figures", exist_ok=True)
+    plt.savefig("report/figures/tree_errors_regression.png", dpi=150, bbox_inches="tight")
+    plt.close()
+    print("  Qrafik saxlanıldı: report/figures/tree_errors_regression.png")
+
+
+def error_near_threshold(tree, X_val, y_val):
+    _, price_tr, _, price_val, _, _ = get_splits()   
+    threshold = np.median(price_tr)                  
+    price_val = price_val.to_numpy()
+
+    wrong = tree.predict(X_val) != y_val             
+    distance = np.abs(price_val - threshold) / threshold * 100
+    near = distance < 10                             
+
+    print(f"  Premium həddi: {threshold:,.0f} AZN")
+    print(f"  Həddə yaxın evlər (±10%):  {near.sum():5d} ev, səhv = {wrong[near].mean() * 100:.1f}%")
+    print(f"  Həddən uzaq evlər:         {(~near).sum():5d} ev, səhv = {wrong[~near].mean() * 100:.1f}%")
 
 
 def task_final(run_test=False):
@@ -280,13 +351,17 @@ def task_final(run_test=False):
     X_tr, y_tr, X_val, y_val, X_te, y_te, names = load_regression_data()
     print("Task A (regression):")
     params_a = choose_best_params("regression", "mse", X_tr, y_tr, X_val, y_val, "R2")
-    compare_with_sklearn("regression", params_a, X_tr, y_tr, X_val, y_val)
+    tree_a = compare_with_sklearn("regression", params_a, X_tr, y_tr, X_val, y_val)
+    plot_feature_importance(tree_a, names, "Task A: qiymət", "tree_importance_regression.png")
+    error_analysis(tree_a, X_val, y_val, names)
 
     # Task B
     Xc_tr, yc_tr, Xc_val, yc_val, Xc_te, yc_te, names = load_classification_data()
     print("Task B (classification):")
     params_b = choose_best_params("classification", "gini", Xc_tr, yc_tr, Xc_val, yc_val, "F1")
-    compare_with_sklearn("classification", params_b, Xc_tr, yc_tr, Xc_val, yc_val)
+    tree_b = compare_with_sklearn("classification", params_b, Xc_tr, yc_tr, Xc_val, yc_val)
+    plot_feature_importance(tree_b, names, "Task B: klassifikasiya", "tree_importance_classification.png")
+    error_near_threshold(tree_b, Xc_val, yc_val)
 
 
     if not run_test:
@@ -305,8 +380,8 @@ def task_final(run_test=False):
     print(f"TEST Task B:  precision={prec:.3f}  recall={rec:.3f}  F1={f1:.3f}  ROC-AUC={auc:.3f}")
 
 if __name__ == "__main__":
-   # task_a_first_try()
-   # task_a_max_depth() 
+    # task_a_first_try()
+    # task_a_max_depth() 
     #task_a_min_samples_leaf()
     #task_b_gini_vs_entropy()
     task_final()
