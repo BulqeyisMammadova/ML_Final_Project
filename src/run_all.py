@@ -58,9 +58,29 @@ def _split(raw_features, price):
 
 
 def _impute(train, *others):
-    """Use the fit split's medians; never learn preprocessing from evaluation rows."""
-    medians = train.median(numeric_only=True).fillna(0.0)
-    return tuple(frame.fillna(medians).to_numpy(dtype=float) for frame in (train, *others))
+    """Fit dummy columns and numeric medians on training rows only."""
+    categorical = list(train.select_dtypes(exclude=np.number).columns)
+    encoded_train = pd.get_dummies(
+        train, columns=categorical, dtype=float
+    )
+    columns = encoded_train.columns
+    medians = encoded_train.median(numeric_only=True).fillna(0.0)
+    if "land_area_m2" in medians:
+        medians["land_area_m2"] = 0.0  # not applicable outside land/house listings
+    result = []
+    for frame in (train, *others):
+        encoded = pd.get_dummies(
+            frame, columns=categorical, dtype=float
+        ).reindex(columns=columns, fill_value=0.0)
+        result.append(encoded.fillna(medians).to_numpy(dtype=float))
+    return tuple(result)
+
+
+def _encoded_feature_names(train):
+    categorical = list(train.select_dtypes(exclude=np.number).columns)
+    return list(pd.get_dummies(
+        train, columns=categorical, dtype=float
+    ).columns)
 
 
 def _score(model, features):
@@ -365,12 +385,13 @@ def main(argv=None):
     cleaned = data_prep.clean(raw)
     if args.quick:
         cleaned = cleaned.sample(n=min(3000, len(cleaned)), random_state=SEED)
-    features, price, feature_names = data_prep.make_features(cleaned)
+    features, price, _ = data_prep.make_features(cleaned)
     valid_price = np.isfinite(price.to_numpy(dtype=float)) & (price.to_numpy(dtype=float) > 0)
     features, price = features.loc[valid_price], price.loc[valid_price]
     train_x_raw, train_y, val_x_raw, val_y, test_x_raw, test_y, threshold = _split(
         features, price
     )
+    feature_names = _encoded_feature_names(train_x_raw)
     train_x, val_x, test_x = _impute(train_x_raw, val_x_raw, test_x_raw)
     train_price = train_y.to_numpy(dtype=float)
     val_price = val_y.to_numpy(dtype=float)

@@ -15,6 +15,9 @@ Exactly **three** things; **one member submits** for the whole team:
 3. **Slides PDF**.
 
 Keep `contribution_report.md` in the repo root (checked at the demo).
+`report/report_draft.pdf` is a review copy of the current report. Confirm
+all author names, the contribution percentages and the team's final text,
+then compile `report/report.tex` again for the submitted PDF.
 
 ## The two tasks
 - **Task A — Regression:** fit a tree to `log1p(price)` and convert predictions
@@ -75,30 +78,36 @@ the full results. Run
 
 The premium threshold is the training-price median; validation and test
 labels use that fixed threshold. The holdout rows are stratified by this
-label. Missing feature values use training medians, and the NumPy SVM uses
+label. Missing numeric features use training medians, except land area,
+which uses zero when inapplicable. The NumPy SVM uses
 training means and standard deviations. Each CV fold refits those statistics
 on its own training portion. Regression uses log prices to reduce the effect
 of the heavy price tail; no test prices are clipped or removed.
+The separate exploratory `get_splits()` helper uses an unstratified
+9,668/9,668 holdout; the integrated runner re-stratifies those holdout rows
+after fixing the training median, producing 9,667/9,669. Headline tables
+and figures below always come from `src.run_all`.
 
 ## Current full-dataset result
 
-The 15 October 2026 run used 64,454 deduplicated listings and five numeric
-features (`area_m2`, `floor_number`, `total_floors`, `lat`, `lng`). The split
+The 16 October 2026 run used 64,454 deduplicated listings and 14 encoded
+features: area, floors, coordinates, room count, land area and one-hot
+property type. The category vocabulary was fitted on training rows. The split
 has 45,118 training, 9,667 validation and 9,669 test rows. The premium
 threshold is 210,000 AZN. All settings were selected by validation F1 or
 log-RMSE before test evaluation.
 
 | Model | Held-out test metric | Three-fold training CV |
 |---|---:|---:|
-| Our tree regressor | MAE 105,951 AZN; RMSE 753,420 AZN; R² 0.238 | log-RMSE 0.4871 ± 0.0141 |
-| scikit-learn tree regressor | MAE 105,931 AZN; RMSE 753,424 AZN; R² 0.238 | log-RMSE 0.4867 ± 0.0139 |
-| Our tree classifier | F1 0.8978; ROC-AUC 0.9627 | F1 0.8892 ± 0.0008 |
-| scikit-learn tree classifier | F1 0.8979; ROC-AUC 0.9630 | F1 0.8890 ± 0.0009 |
-| Our linear Pegasos | F1 0.6989; ROC-AUC 0.6946 | F1 0.7025 ± 0.0066 |
-| scikit-learn SGD hinge | F1 0.6701; ROC-AUC 0.6968 | F1 0.6891 ± 0.0220 |
-| Our RFF Pegasos | F1 0.7352; ROC-AUC 0.7908 | F1 0.7454 ± 0.0035 |
+| Our tree regressor | MAE 103,348 AZN; RMSE 759,104 AZN; R² 0.227 | log-RMSE 0.4087 ± 0.0183 |
+| scikit-learn tree regressor | MAE 103,550 AZN; RMSE 759,168 AZN; R² 0.227 | log-RMSE 0.4078 ± 0.0184 |
+| Our tree classifier | F1 0.9044; ROC-AUC 0.9669 | F1 0.8973 ± 0.0011 |
+| scikit-learn tree classifier | F1 0.9044; ROC-AUC 0.9671 | F1 0.8974 ± 0.0011 |
+| Our linear Pegasos | F1 0.7769; ROC-AUC 0.8257 | F1 0.7739 ± 0.0125 |
+| scikit-learn SGD hinge | F1 0.7779; ROC-AUC 0.8395 | F1 0.7782 ± 0.0004 |
+| Our RFF Pegasos | F1 0.8065; ROC-AUC 0.8741 | F1 0.8070 ± 0.0056 |
 
 The 85 test listings priced above the training 99th percentile (2.5 million
-AZN) have an average absolute error of about 3.65 million AZN; this tail
+AZN) have an average absolute error of about 3.64 million AZN; this tail
 drives much of the price RMSE. Fit and predict times are saved in the JSON
 because they depend on the machine.

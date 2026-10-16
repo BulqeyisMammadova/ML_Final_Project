@@ -5,7 +5,7 @@ import unittest
 import numpy as np
 import pandas as pd
 
-from src.run_all import _impute, _split
+from src.run_all import _encoded_feature_names, _impute, _split
 
 
 class RunnerBoundaryTests(unittest.TestCase):
@@ -31,6 +31,25 @@ class RunnerBoundaryTests(unittest.TestCase):
         scaled_train, scaled_holdout = _impute(train, holdout)
         np.testing.assert_array_equal(scaled_train[:, 0], [10.0, 30.0])
         np.testing.assert_array_equal(scaled_holdout[:, 0], [20.0, 1000.0])
+
+    def test_unseen_holdout_category_does_not_change_training_columns(self):
+        train = pd.DataFrame({"area_m2": [10.0, 30.0],
+                              "property_type": ["flat", "house"]})
+        holdout = pd.DataFrame({"area_m2": [np.nan, 40.0],
+                                "property_type": ["villa", "flat"]})
+        train_array, holdout_array = _impute(train, holdout)
+        names = _encoded_feature_names(train)
+        self.assertEqual(train_array.shape[1], len(names))
+        self.assertEqual(holdout_array.shape[1], len(names))
+        self.assertFalse(any("villa" in name for name in names))
+        np.testing.assert_array_equal(holdout_array[:, 0], [20.0, 40.0])
+
+    def test_missing_land_area_uses_not_applicable_zero(self):
+        train = pd.DataFrame({"land_area_m2": [100.0, np.nan]})
+        holdout = pd.DataFrame({"land_area_m2": [np.nan]})
+        train_array, holdout_array = _impute(train, holdout)
+        np.testing.assert_array_equal(train_array[:, 0], [100.0, 0.0])
+        np.testing.assert_array_equal(holdout_array[:, 0], [0.0])
 
 
 if __name__ == "__main__":
