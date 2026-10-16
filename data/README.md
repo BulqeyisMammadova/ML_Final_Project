@@ -9,13 +9,16 @@ Kaggle: **"binaaz-sale-project"** by `sehriyarmemmedli`
 
 ## How to place it
 1. Download the dataset archive from Kaggle.
-2. Extract it so the CSV lives **directly in this folder**, e.g.:
+2. Extract version 1 so the CSV lives **directly in this folder**:
    ```
-   data/bina_az_sale.csv
+   data/house_sale.csv
    ```
-3. If your filename differs, set the path once at the top of
-   `src/data_prep.py` (the `DATA_PATH` constant) — do not scatter paths
-   across the codebase.
+3. If your filename differs, pass `--data /absolute/path/to/file.csv` to
+   `python -m src.run_all`, or change `DATA_PATH` in `src/data_prep.py`.
+
+The integrated run was downloaded on **15 October 2026**. The archive has
+one CSV with 100,775 rows and 51 columns before deduplication. Keep the
+archive and CSV out of Git.
 
 ## Notes / gotchas
 - Column names are in **Azerbaijani** (e.g. `Sahə`, `Otaq sayı`, `Mərtəbə`,
