@@ -109,7 +109,7 @@ def make_features(df):
     Return (X, y, feature_names).
     """
     y=df["price"].copy()
-    numeric_features=["area_m2","floor_number","total_floors","lat","lng","room_count","land_area_m2","land_area_known"]
+    numeric_features=["area_m2","floor_number","total_floors","lat","lng","room_count","land_area_m2"]
     categorical_features=["property_type"]
     X=df[numeric_features+categorical_features].copy()
     feature_names=X.columns.tolist()
@@ -191,7 +191,7 @@ def get_splits():
     X_train["land_area_m2"]=X_train["land_area_m2"].fillna(0)
     X_validation["land_area_m2"]=X_validation["land_area_m2"].fillna(0)
     X_test["land_area_m2"]=X_test["land_area_m2"].fillna(0)
-    
+
     train_medians=X_train.median()
     X_train=X_train.fillna(train_medians)
     X_validation=X_validation.fillna(train_medians)
