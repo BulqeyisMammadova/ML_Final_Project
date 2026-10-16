@@ -162,15 +162,19 @@ def standardize(X_tr, *others):
     Return the scaled arrays in the same order as given.
     (Needed for the SVM; trees don't require it.)
     """
-    train_mean=X_tr.mean()
-    train_std=X_tr.std(ddof=0).replace(0,1)
-    X_tr_scaled=(X_tr-train_mean)/train_std
-    other_scoled=list()
-    for element in others:
-        scaled_element=(element-train_mean)/train_std
-        other_scoled.append(scaled_element)
-    return (X_tr_scaled, *other_scoled)
-
+    train = np.asarray(X_tr, dtype=float)
+    if train.ndim != 2 or train.shape[0] == 0 or not np.isfinite(train).all():
+        raise ValueError("Training features must be a nonempty finite 2D array")
+    mean = train.mean(axis=0)
+    std = train.std(axis=0)
+    std[std == 0] = 1.0
+    result = []
+    for features in (X_tr, *others):
+        values = np.asarray(features, dtype=float)
+        if values.ndim != 2 or values.shape[1] != train.shape[1] or not np.isfinite(values).all():
+            raise ValueError("Every feature set must be finite with matching columns")
+        result.append((values - mean) / std)
+    return tuple(result)
 
 
 def get_splits():

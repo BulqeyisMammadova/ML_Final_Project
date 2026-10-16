@@ -155,12 +155,17 @@ class DecisionTree:
         if self.max_features is None:
             features = range(n_features)
         else:
-            features = self._rng.choice(n_features, size=self.max_features, replace=False)
-
+            features = self._rng.permutation(n_features)
+        checked = 0
 
         for j in features:
+            if self.max_features is not None and checked >= self.max_features:
+                break
             order = np.argsort(X[:, j], kind="mergesort")
             x_sorted = X[order, j]
+            if x_sorted[0] == x_sorted[-1]:
+                continue
+            checked += 1
 
             
             valid = (x_sorted[:-1] != x_sorted[1:]) \

@@ -51,11 +51,9 @@
 \twocolumn[
   \begin{@twocolumnfalse}
   \begin{center}
-    {\LARGE\bfseries Your Project Title Here:\\A Clear, Specific Subtitle\par}
+    {\LARGE\bfseries From-Scratch Decision Trees and SVMs\\for Azerbaijani Property Listings\par}
     \vspace{1.2em}
-    % Authors: Surname, Given name --- alphabetical by surname.
-    {\large
-      Aliyeva, Aysel\quad Mammadov, Murad\quad Rustamli, Rustam\par}
+    {\large Bakir Gahramanov and the ML Final Project team\par}
     \vspace{0.5em}
     {\itshape MLE-AI-201 Machine Learning, AI Academy --- Cohort II\par}
     \vspace{1.4em}
@@ -63,14 +61,22 @@
   \begin{quote}
     \small
     \abstractkw{Abstract---}% IEEE uses an em-dash after "Abstract"
-    One paragraph, roughly 150--250 words. State the problem (price
-    prediction and the derived price-tier task on the bina.az dataset),
-    what you built from scratch (a decision tree and an SVM), the key
-    result (headline metrics vs.\ scikit-learn), and the main takeaway.
-    Write it last. \textbf{End the abstract with your repository link},
-    per IEEE convention:
-    \href{https://github.com/your-team/your-repo}{\texttt{github.com/your-team/your-repo}}
-    (tag \texttt{v1.0-final}).
+    We study sale-price regression and premium-price classification on a
+    scraped Azerbaijani property-listings dataset. The team implemented
+    decision trees for both tasks and a Pegasos support-vector machine
+    in NumPy, including a random Fourier feature extension. After
+    deduplication, 64,454 listings remained. A seeded 70/15/15 split,
+    training-only preprocessing, validation-based configuration selection,
+    and three-fold training cross-validation support a held-out comparison
+    with scikit-learn. Our regression tree reached 103,348 AZN MAE and
+    0.227 $R^2$ on the test set, close to the matched baseline. The tree
+    classifier reached 0.904 F1; linear and nonlinear Pegasos reached
+    0.777 and 0.806 F1. Very expensive listings dominated price RMSE:
+    the 85 test listings above the training 99th-percentile price had
+    3.64 million AZN mean absolute error. The results show that the
+    from-scratch models can closely match reference trees, while the
+    heavy price tail remains a practical limitation. Code:
+    \href{https://github.com/BulqeyisMammadova/ML_Final_Project}{\texttt{github.com/BulqeyisMammadova/ML\_Final\_Project}}.
 
     \vspace{0.6em}
     \abstractkw{Index Terms---}decision tree, support-vector machine,
@@ -82,21 +88,54 @@
 
 % =====================================================================
 \section{Introduction}
-Motivate the problem and state your contributions as a short bulleted or
-inline list. What is the task, why does it matter, and what did your
-team do? Keep background brief; cite sources like this~\cite{pegasos}.
+Real-estate asking prices vary with area, location, floor and property
+type. A scraped listing dataset adds duplicate advertisements, missing
+values and extreme prices, so the modelling problem includes careful
+data preparation as well as algorithm implementation. We frame the
+same listings as two tasks: predict sale price and classify whether a
+listing is above the training-set median price.
+
+Our team built decision trees and Pegasos SVMs from scratch in NumPy,
+then compared them with scikit-learn models under a shared split and
+matched settings where possible. We report validation curves, held-out
+metrics, training-only cross-validation, runtime and error analysis.
+The objective is a reproducible comparison that explains model behaviour,
+including where high-price listings challenge regression.
 
 \section{Related Work / Background}
-Briefly place your work in context: decision trees (impurity, information
-gain), the soft-margin SVM and the hinge-loss primal, and the Pegasos
-sub-gradient solver you used~\cite{pegasos}. One or two short paragraphs.
+Decision trees choose feature thresholds that reduce node impurity and
+recursively partition the feature space. Gini and entropy serve the
+classification task; variance reduction serves price regression.
+Their interpretable splits can model nonlinear interactions but can
+overfit without depth and leaf-size controls. A soft-margin SVM instead
+optimises regularised hinge loss. Pegasos uses stochastic sub-gradients
+with a decreasing learning rate~\cite{pegasos}. Random Fourier features
+provide a finite-dimensional approximation to an RBF kernel and allow
+the same linear solver to represent nonlinear boundaries.
 
 \section{Data and Preprocessing}
-Describe the bina.az dataset: size, key columns, and the cleaning you
-did (currency, types, missing values, duplicates, outliers). State the
-two tasks (price regression; price-tier classification), how you derived
-the tier label, and your train/validation/test split. \textbf{Name the
-leakage columns you removed and why.}
+The Kaggle bina.az sale dataset~\cite{binaaz} has 100,775 rows before
+cleaning. We keep the latest scrape of each listing URL, leaving 64,454
+unique listings. The price currency in the downloaded version is AZN.
+Area strings are parsed into square metres, including conversion from
+\emph{sot}; floor and total-floor counts are extracted from combined
+strings. The model uses area, floor, total floors, coordinates, room
+count, land area and one-hot property type (14 encoded features).
+We remove \texttt{unit\_price} and \texttt{total\_price} because they
+are calculated from the target, and we exclude listing identifiers,
+names and raw addresses. Missing numeric values use training medians;
+unavailable land area uses zero because it is inapplicable to many flats.
+
+The target is positive sale price; regression fits $\log(1+\text{price})$
+and returns predictions to AZN for evaluation. The binary label is
+premium when price exceeds the training median of 210,000 AZN.
+The split sizes are shown in Table~\ref{tab:data}; the validation and
+test halves are stratified by this fixed label. Exploratory analysis
+found a heavy right tail and some suspicious low prices or possible
+rental entries. An exploratory 99th-percentile training filter reduced
+typical MAE but increased RMSE on unchanged validation data, so the
+integrated pipeline retains high-price observations rather than applying
+an unsupported universal outlier cutoff.
 
 \begin{table}[t]
   \centering
@@ -106,18 +145,26 @@ leakage columns you removed and why.}
     \toprule
     Property & Value \\
     \midrule
-    Rows (after cleaning)       & --- \\
-    Features used               & --- \\
-    Train / Val / Test split    & --- / --- / --- \\
-    Price-tier balance (\%)     & --- \\
+    Rows (after cleaning)       & 64,454 \\
+    Encoded features used       & 14 \\
+    Train / Val / Test split    & 45,118 / 9,667 / 9,669 \\
+    Premium share (train)       & 49.5\% \\
     \bottomrule
   \end{tabular}
 \end{table}
 
 \section{Method}
 \subsection{Decision tree (from scratch)}
-Describe your impurity criteria (Gini / entropy / MSE reduction), the
-split search, recursion, leaf rule, and hyperparameters.
+For each numeric feature, the tree sorts training values, considers
+midpoints between distinct adjacent values, and selects the threshold
+with the greatest weighted impurity decrease. Classification supports
+Gini impurity and entropy; regression uses mean squared deviation within
+nodes. Recursion stops according to maximum depth, minimum split and
+leaf sample counts, or minimum impurity decrease. A regression leaf
+predicts its mean target, while a classification leaf predicts its
+majority class and exposes class-frequency probabilities. All split
+search, recursion and prediction are implemented in NumPy. Tree depth,
+leaf size and classification criterion are selected on validation data.
 
 \subsection{Support-vector machine (from scratch)}
 We map the standard and premium labels to $-1$ and $+1$, respectively,
@@ -158,189 +205,151 @@ Pegasos is applied to $\mathbf{z}(\mathbf{x})$; its transformed-space
 coefficients are not interpreted as original-feature importance.
 
 \section{Experimental Setup}
-Metrics (RMSE/MAE/$R^2$ for regression; precision/recall/F1/AUC for
-classification), hyperparameter search protocol, seeds, and the
-scikit-learn baselines you compared against (with matched settings).
+All experiments used seed 42. After deduplication, 70\% of the rows were
+reserved for training. The premium threshold was set to the training
+price median; the remaining rows were split into validation and test
+halves stratified by that label. Missing numeric features were filled
+with training medians, except inapplicable land area, which used zero.
+Property types were one-hot encoded using training categories only.
+The team's SVM used training means and standard
+deviations; scikit-learn's hinge-loss baseline scaled features inside
+a pipeline. Every cross-validation fold refitted its own preprocessing
+on that fold's training rows.
 
-\subsection{SVM protocol}
-We used the deterministic split with seed 42. Missing feature values were
-imputed using training-set medians, the premium threshold was the median
-training price, and a $\texttt{StandardScaler}$ was fitted on training
-features only and then applied to validation features. The five numeric
-inputs were area, floor number, total floors, latitude, and longitude.
-Both models used the same transformed training and validation partitions.
-Linear Pegasos used $\lambda=0.01$, $3n_{\mathrm{train}}$ updates, and
-seed 42. The RFF model used $\gamma=1$, $D=500$, $\lambda=10^{-4}$,
-20,000 updates, and seed 42. Reported model metrics and error analyses
-below are validation results. The convergence trace uses the training
-objective, recorded every 1,000 updates during one 20,000-update run with
-$\lambda=0.01$.
+Tree depth, minimum leaf size, Gini versus entropy, SVM regularisation,
+and RFF bandwidth were chosen from validation results only. The regression
+selection metric was log-RMSE; classification used premium-class F1.
+The test rows were evaluated once with the selected settings. We report
+price-scale RMSE, MAE, and $R^2$, plus precision, recall, F1, ROC-AUC,
+and confusion matrices for price tiers. NumPy implementations computed
+the metrics. We compared the trees with matched scikit-learn trees and
+the linear Pegasos SVM with a scaled SGD hinge-loss classifier. Wall-clock
+fit and prediction times were measured separately and recorded by the
+reproduction script; they depend on the machine.
 
 \section{Results}
-Lead with a results table; back every claim with a number or figure.
+The reproducible run retained 64,454 unique listings. The seeded split
+contained 45,118 training, 9,667 validation, and 9,669 test rows. The
+premium threshold was the training median of 210,000 AZN. The 14 encoded
+features included area, floors, coordinates, room count, land area, and
+one-hot property type. The category vocabulary came from training rows only.
+All configurations below were selected using validation results before
+the test set was evaluated. Three-fold cross-validation (CV) uses training
+rows only and is reported separately from the single held-out test score.
 
 \begin{table}[t]
   \centering
-  \caption{Headline results (test set, mean $\pm$ std over folds).}
-  \label{tab:results}
-  \begin{tabular}{@{}lcc@{}}
+  \caption{Task A: held-out price regression. RMSE and MAE are in thousands
+  of AZN. CV log-RMSE is training-fold mean $\pm$ standard deviation.}
+  \label{tab:regression-results}
+  \small
+  \begin{tabular}{@{}lrrrr@{}}
     \toprule
-    Model & Task A (RMSE) & Task B (F1) \\
+    Model & RMSE & MAE & $R^2$ & CV log-RMSE \\
     \midrule
-    Ours: decision tree     & --- & --- \\
-    Ours: SVM (Pegasos)     & n/a & --- \\
-    scikit-learn baseline   & --- & --- \\
+    Our tree & 759.1 & 103.3 & 0.227 & $0.409\pm0.018$ \\
+    sklearn tree & 759.2 & 103.5 & 0.227 & $0.408\pm0.018$ \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-\begin{figure}[t]
-  \centering
-  % \includegraphics[width=\linewidth]{figures/your_plot.pdf}
-  \fbox{\parbox[c][3.2cm][c]{0.9\linewidth}{\centering\small
-    Replace with a figure (e.g.\ validation curve, confusion matrix,
-    or feature importances). Save plots to \texttt{figures/}.}}
-  \caption{One clear figure beats ten decorative ones.}
-  \label{fig:main}
-\end{figure}
-
-\subsection{SVM validation results and analysis}
-Table~\ref{tab:svm-models} reports validation performance for the selected
-linear and RFF models. The RFF model reached 0.7502 accuracy and 0.7424
-F1, compared with 0.6689 accuracy and 0.7074 F1 for Linear Pegasos.
-These are validation metrics, not final test-set estimates.
-
 \begin{table}[t]
   \centering
-  \caption{Selected SVM validation performance.}
-  \label{tab:svm-models}
-  \begin{tabular}{@{}lrr@{}}
+  \caption{Task B: held-out premium-class classification. CV F1 is
+  training-fold mean $\pm$ standard deviation.}
+  \label{tab:classification-results}
+  \small
+  \begin{tabular}{@{}lrrr@{}}
     \toprule
-    Model & Accuracy & F1 \\
+    Model & Test F1 & Test AUC & CV F1 \\
     \midrule
-    Linear Pegasos & 0.6689 & 0.7074 \\
-    RFF Pegasos    & 0.7502 & 0.7424 \\
+    Our tree & 0.904 & 0.967 & $0.897\pm0.001$ \\
+    sklearn tree & 0.904 & 0.967 & $0.897\pm0.001$ \\
+    Our linear Pegasos & 0.777 & 0.826 & $0.774\pm0.013$ \\
+    sklearn SGD hinge & 0.778 & 0.839 & $0.778\pm0.000$ \\
+    Our RFF Pegasos & 0.806 & 0.874 & $0.807\pm0.006$ \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-Figure~\ref{fig:svm-convergence} shows that the recorded training
-objective fell overall from 1.0000 to 0.7807 over 20,000 updates, with
-small non-monotonic fluctuations. Across the tested regularization values,
-the widest measured margin occurred at $\lambda=0.01$; validation accuracy
-was highest among these three settings at the same value.
+Validation selected depth 12 for regression, depth 10 for classification,
+and at least 20 samples per leaf for both trees; the classifier used entropy.
+The linear SVM used $\lambda=10^{-3}$
+and 20,000 updates. The random Fourier feature (RFF) SVM used
+$\gamma=1$, 256 components, $\lambda=10^{-3}$, and 12,000 updates.
+Figure~\ref{fig:validation} shows how tree depth, minimum leaf size,
+and the classification split criterion affected validation scores. The two tree
+implementations were very close on both tasks (Tables~\ref{tab:regression-results}
+and~\ref{tab:classification-results}); small differences can arise from
+threshold arithmetic and tie-breaking.
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=\columnwidth]{figures/svm_convergence.png}
-  \caption{Linear Pegasos training objective during one seeded run.}
-  \label{fig:svm-convergence}
+  \includegraphics[width=\linewidth]{figures/tree_validation_report.png}
+  \caption{Decision-tree validation curves used for configuration
+  selection. Lower is better for regression log-RMSE; higher is better
+  for classification F1.}
+  \label{fig:validation}
 \end{figure}
 
-\begin{table}[t]
-  \centering
-  \caption{Linear Pegasos validation results by regularization strength.}
-  \label{tab:svm-lambda}
-  \begin{tabular}{@{}rrrr@{}}
-    \toprule
-    $\lambda$ & Margin width & Accuracy & F1 \\
-    \midrule
-    0.01   & 1.9036 & 0.6689 & 0.7074 \\
-    0.001  & 1.4854 & 0.6498 & 0.6755 \\
-    0.0001 & 0.4752 & 0.6605 & 0.6736 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
+The linear Pegasos model learned $\|w\|=3.464$ and a margin width of
+$2/\|w\|=0.577$ in standardised feature space. By the criterion
+$y_i(w^\top x_i+b)\leq1$, 23,410 of 45,118 training rows were support
+vectors. Its regularised hinge objective fell from 15.091 after 100
+updates to 0.580 after 20,000 updates, with stochastic fluctuations.
+The RFF model improved the held-out F1 over linear Pegasos from 0.777
+to 0.806; its three-fold CV F1 was $0.807\pm0.006$.
 
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\columnwidth]{figures/svm_margin_lambda.png}
-  \caption{Margin width and validation accuracy across $\lambda$ values.}
-  \label{fig:svm-lambda}
-\end{figure}
+The tree classifier had 470 false positives and 441 false negatives on
+the held-out set. Area contributed 54.3\% of its total impurity decrease,
+followed by longitude (19.2\%) and latitude (9.6\%). These are predictive
+associations, not causal effects. On this machine, our regression tree
+fitted in about 0.52 seconds versus 0.11 seconds for the matched
+scikit-learn tree. Exact fit and prediction timings for every model
+are in the generated summary JSON.
 
-Figures~\ref{fig:svm-linear-cm} and~\ref{fig:svm-rff-cm} show the
-validation confusion matrices. Linear Pegasos produced 2,294 false positives and 907 false
-negatives; RFF produced 1,119 false positives and 1,296 false negatives.
-RFF improved validation accuracy by approximately 8.13 percentage points
-and reduced false positives, but it increased false negatives; therefore,
-it did not improve every error type. Figure~\ref{fig:svm-error-comparison}
-summarizes the validation error counts.
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\columnwidth]{figures/svm_error_comparison.png}
-  \caption{False-positive and false-negative counts on the validation set.}
-  \label{fig:svm-error-comparison}
-\end{figure}
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\columnwidth]{figures/svm_linear_vs_rff.png}
-  \caption{Validation accuracy and F1 for the selected SVM models.}
-  \label{fig:svm-model-comparison}
-\end{figure}
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\columnwidth]{figures/svm_linear_confusion_matrix.png}
-  \caption{Linear Pegasos validation confusion matrix.}
-  \label{fig:svm-linear-cm}
-\end{figure}
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\columnwidth]{figures/svm_rff_confusion_matrix.png}
-  \caption{RFF Pegasos validation confusion matrix.}
-  \label{fig:svm-rff-cm}
-\end{figure}
-
-The Linear Pegasos coefficients below are signed weights for standardized
-inputs, ordered by absolute magnitude. Their signs describe the direction
-of change in the model score when a standardized input increases; they do
-not establish causal effects.
-\begin{table}[t]
-  \centering
-  \caption{Linear Pegasos coefficients on standardized inputs.}
-  \label{tab:svm-coefficients}
-  \begin{tabular}{@{}lrr@{}}
-    \toprule
-    Feature & Coefficient & Absolute value \\
-    \midrule
-    Total floors & $+0.8578$ & 0.8578 \\
-    Latitude     & $-0.5758$ & 0.5758 \\
-    Area         & $+0.1454$ & 0.1454 \\
-    Longitude    & $+0.1212$ & 0.1212 \\
-    Floor number & $-0.0265$ & 0.0265 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-For the validation errors, false-positive houses had median area 77,
-floor number 7, and total floors 16, compared with 70, 5, and 9 among
-correctly classified standard houses; their median latitude/longitude
-were 40.3980/49.8708 versus 40.4087/49.8476. False negatives had median
-area 130, floor number 5, and total floors 9, compared with 143, 7, and
-16 among correctly classified premium houses; their median coordinates
-were 40.3963/49.8531 versus 40.3932/49.8467. These are descriptive
-validation-set differences, not causal explanations.
-
-As a small implementation sanity check, both Pegasos and
-$\texttt{SGDClassifier(loss=hinge)}$ achieved 100\% accuracy on a tiny,
-separable synthetic validation set with training-fitted standardization.
-This synthetic check is distinct from the real-data validation results
-above and is not a benchmark comparison.
+Price errors were much larger in the luxury tail. The 85 test listings
+above the training 99th-percentile price of 2.5 million AZN had mean
+absolute error 3.64 million AZN, versus 72.0 thousand AZN for the
+remaining 9,584 test listings. The median absolute error across the
+whole test set was 24.7 thousand AZN. Our tree underpredicted 90.6\%
+of those 85 tail listings, indicating systematic compression of high
+prices. The reproducible run also saves a log-scale actual-versus-predicted
+plot for detailed inspection.
 
 \section{Discussion and Limitations}
-Where and why each model fails (luxury outliers, sparse districts,
-scaling effects), the bias--variance story, and honest limitations.
+Validation curves show that allowing deeper trees improves both tasks
+over the shallowest settings; minimum leaf size constrains their
+variance. Matching scikit-learn trees give nearly identical test scores,
+while their training is faster in this environment. Our SVM's learned
+margin and performance depend on feature scaling, regularisation and
+the stochastic update budget. RFF improves premium-class F1, but its
+transformed coefficients cannot be read as original-feature effects.
+
+The price distribution has an extreme upper tail and possible mislabeled
+sale/rental listings. The model compresses expensive predictions, so its
+overall RMSE is much larger than its median error. Property-type and
+coordinate features only approximate neighbourhood and condition;
+unavailable text, sparse categories and imperfect listing labels limit
+generalisation. Cross-validation standard deviations describe variation
+across three training folds, not a confidence interval for the held-out
+test result. Timings are machine-specific and the SVM and scikit-learn
+optimisers do not have identical update rules.
 
 \section{Conclusion}
-One short paragraph: what you found and what you would do next.
+The from-scratch trees closely matched scikit-learn on both sale-price
+and price-tier tasks. The RFF Pegasos model improved tier F1 over its
+linear version, while luxury properties remained the main regression
+failure. Future work should verify suspicious listings, improve location
+and property-condition features, and evaluate models on a later scrape
+to measure performance under market change.
 
 \section*{Tools and Acknowledgements}
-Disclose any AI-assistant use and what it was used for, plus data/code
-you built on. (Required.)
+An AI coding assistant helped draft and test the integration runner,
+evaluation metrics, baseline comparisons, README, and this Results
+section. The dataset came from the Kaggle source~\cite{binaaz};
+scikit-learn was used only for comparison models and
+metric cross-checks.
 
 % =====================================================================
 \begin{thebibliography}{9}
@@ -348,6 +357,10 @@ you built on. (Required.)
 S.~Shalev-Shwartz, Y.~Singer, N.~Srebro, and A.~Cotter,
 ``Pegasos: primal estimated sub-gradient solver for SVM,''
 \emph{Mathematical Programming}, vol.~127, no.~1, pp.~3--30, 2011.
+\bibitem{binaaz}
+sehriyarmemmedli, ``Binaaz sale project,'' Kaggle, dataset version 1.
+\href{https://www.kaggle.com/datasets/sehriyarmemmedli/binaaz-sale-project}{Dataset page}
+(accessed Oct.~15, 2026).
 \end{thebibliography}
 
 \end{document}

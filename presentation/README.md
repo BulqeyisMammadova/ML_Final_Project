@@ -1,7 +1,9 @@
 # Presentation
 
-Put your final **slides PDF** here (e.g. `slides.pdf`) and submit the same
-PDF on Moodle.
+`member4_results.pptx` is Bakir's editable two-slide results contribution.
+`member4_results.pdf` is its verified PDF export. Integrate these two slides
+into the team's final deck, then export and submit **one complete slides PDF**
+on Moodle. This two-page contribution is not the complete team presentation.
 
 Suggested flow (~8–10 slides, defended live after the deadline):
 1. Problem & dataset (bina.az: price regression + derived price tier).

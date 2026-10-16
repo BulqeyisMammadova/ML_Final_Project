@@ -14,11 +14,13 @@ env/
 # --- Generated outputs ---
 report/figures/*.pdf
 report/figures/*.png
+report/figures/quick/
 !report/figures/.gitkeep
 *.log
 *.aux
 *.out
 results/
+.codex-slides-build/
 *.csv.gz
 
 # --- OS / editor cruft ---
