@@ -136,6 +136,19 @@ test_fast_split_same_as_simple()
 print("OK: test_fast_split_same_as_simple")
 
 
+def test_close_values_do_not_loop():
+    # iki çox yaxın rəqəm: ortası yuvarlaqlaşıb böyüyünə bərabər olur
+    a = 40.4
+    b = np.nextafter(a, 100)        # a-dan sonrakı ən kiçik mümkün rəqəm
+    X = np.array([[a], [b], [b]])
+    y = np.array([1.0, 2.0, 3.0])
+    tree = DecisionTree(task="regression", criterion="mse").fit(X, y)
+    assert np.allclose(tree.predict(X), [1.0, 2.5, 2.5])
+
+test_close_values_do_not_loop()
+print("OK: test_close_values_do_not_loop")
+
+
 
 if __name__ == "__main__":
     tests = [f for name, f in sorted(globals().items()) if name.startswith("test_")]

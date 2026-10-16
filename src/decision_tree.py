@@ -64,6 +64,7 @@ class DecisionTree:
         min_samples_split: int = 2,
         min_samples_leaf: int = 1,
         min_impurity_decrease: float = 0.0,
+        max_features: int | None = None,
         random_state: int = 42,
     ):
         self.task = task
@@ -71,6 +72,7 @@ class DecisionTree:
         self.max_depth = max_depth
         self.min_samples_split = min_samples_split
         self.min_samples_leaf = min_samples_leaf
+        self.max_features = max_features
         self.min_impurity_decrease = min_impurity_decrease
         self.random_state = random_state
         self.root: Node | None = None
@@ -106,7 +108,8 @@ class DecisionTree:
             values = np.unique(X[:, j])                 
             if len(values) < 2:                         
                 continue
-            thresholds = (values[:-1] + values[1:]) / 2  
+            thresholds = (values[:-1] + values[1:]) / 2
+            thresholds = np.where(thresholds >= values[1:], values[:-1], thresholds) 
 
             for t in thresholds:                        
                 left_mask = X[:, j] <= t                
@@ -149,10 +152,20 @@ class DecisionTree:
 
         n_left = np.arange(1, n_samples)
         n_right = n_samples - n_left
+        if self.max_features is None:
+            features = range(n_features)
+        else:
+            features = self._rng.permutation(n_features)
+        checked = 0
 
-        for j in range(n_features):
+        for j in features:
+            if self.max_features is not None and checked >= self.max_features:
+                break
             order = np.argsort(X[:, j], kind="mergesort")
             x_sorted = X[order, j]
+            if x_sorted[0] == x_sorted[-1]:
+                continue
+            checked += 1
 
             
             valid = (x_sorted[:-1] != x_sorted[1:]) \
@@ -183,6 +196,8 @@ class DecisionTree:
                 best_gain = gains[i]
                 best_feature = j
                 best_threshold = (x_sorted[i] + x_sorted[i + 1]) / 2
+                if best_threshold >= x_sorted[i + 1]:      
+                    best_threshold = x_sorted[i]
 
         if best_feature is None:
             return None
@@ -220,6 +235,8 @@ class DecisionTree:
 
        
         left_mask = X[:, feature] <= threshold
+        if left_mask.all() or not left_mask.any():
+            return node
         node.feature = feature
         node.threshold = threshold
         node.gain = gain
@@ -234,6 +251,7 @@ class DecisionTree:
             self.classes_ = np.unique(y)
         self._n_total = len(y)
         self.n_features_ = X.shape[1]
+        self._rng = np.random.default_rng(self.random_state)
         self.root = self._grow(X, y, depth=0)
         self.feature_importances_ = self._compute_importances()
         return self
