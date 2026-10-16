@@ -119,6 +119,63 @@ def analyze_margin(model, X_train, y_train):
     }
 
 
+def compare_lambda_margin_performance(X_train, y_train, X_val, y_val):
+    lambdas = [0.01, 0.001, 0.0001]
+    results = []
+
+    for lam in lambdas:
+        model = PegasosSVM(
+            lambda_=lam,
+            n_iters=3 * len(X_train),
+            learning_rate="pegasos",
+            random_state=42
+        )
+        model.fit(X_train, y_train)
+
+        y_pred = model.predict(X_val)
+        margin = analyze_margin(model, X_train, y_train)
+
+        results.append({
+            "lambda": lam,
+            "margin_width": margin["margin_width"],
+            "accuracy": accuracy_score(y_val, y_pred),
+            "f1": f1_score(y_val, y_pred),
+        })
+
+    margin_ax = plt.figure(figsize=(8, 5)).subplots()
+    accuracy_ax = margin_ax.twinx()
+
+    margin_ax.plot(
+        [result["lambda"] for result in results],
+        [result["margin_width"] for result in results],
+        marker="o",
+        label="Margin width"
+    )
+    accuracy_ax.plot(
+        [result["lambda"] for result in results],
+        [result["accuracy"] for result in results],
+        marker="s",
+        color="tab:orange",
+        label="Validation accuracy"
+    )
+
+    margin_ax.set_xscale("log")
+    margin_ax.invert_xaxis()
+    margin_ax.set_xlabel("Lambda")
+    margin_ax.set_ylabel("Margin width")
+    accuracy_ax.set_ylabel("Validation accuracy")
+    margin_ax.set_title("Lambda vs. Margin Width and Validation Accuracy")
+    margin_ax.grid(True)
+    margin_ax.legend(loc="upper left")
+    accuracy_ax.legend(loc="upper right")
+
+    margin_ax.figure.tight_layout()
+    margin_ax.figure.savefig("report/figures/svm_margin_lambda.png", dpi=150)
+    plt.show()
+
+    return results
+
+
 def analyze_convergence(
     X_train,
     y_train,
