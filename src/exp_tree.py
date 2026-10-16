@@ -414,6 +414,11 @@ def task_final(run_test=False):
     tree_b = compare_with_sklearn("classification", params_b, Xc_tr, yc_tr, Xc_val, yc_val)
     plot_feature_importance(tree_b, names, "Task B: klassifikasiya", "tree_importance_classification.png")
     error_near_threshold(tree_b, Xc_val, yc_val)
+    print("Bonus: random forest (Task B):")
+    forest_b = RandomForest(task="classification", n_trees=50).fit(Xc_tr, yc_tr)
+    f1 = precision_recall_f1(yc_val, forest_b.predict(Xc_val))[2]
+    auc = roc_auc(yc_val, forest_b.predict_proba(Xc_val)[:, 1])
+    print(f"  meşə: val F1={f1:.3f}  ROC-AUC={auc:.3f}")
 
 
     if not run_test:
@@ -432,6 +437,10 @@ def task_final(run_test=False):
     prec, rec, f1 = precision_recall_f1(yc_te, p)
     auc = roc_auc(yc_te, tree_b.predict_proba(Xc_te)[:, 1])
     print(f"TEST Task B:  precision={prec:.3f}  recall={rec:.3f}  F1={f1:.3f}  ROC-AUC={auc:.3f}")
+    p = forest_b.predict(Xc_te)
+    prec, rec, f1 = precision_recall_f1(yc_te, p)
+    auc = roc_auc(yc_te, forest_b.predict_proba(Xc_te)[:, 1])
+    print(f"TEST Forest B: precision={prec:.3f}  recall={rec:.3f}  F1={f1:.3f}  ROC-AUC={auc:.3f}")
 
 if __name__ == "__main__":
     # task_a_first_try()
