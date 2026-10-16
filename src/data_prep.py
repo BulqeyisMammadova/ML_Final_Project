@@ -97,6 +97,8 @@ def clean(df):
     df["room_count"]=df["Otaq sayı"].copy()
     df["property_type"]=df["Kateqoriya"].copy()
 
+    df["land_area_known"]=df["land_area_m2"].notna().astype(int)
+
     return df 
 
 def make_features(df):
@@ -107,7 +109,7 @@ def make_features(df):
     Return (X, y, feature_names).
     """
     y=df["price"].copy()
-    numeric_features=["area_m2","floor_number","total_floors","lat","lng","room_count"]
+    numeric_features=["area_m2","floor_number","total_floors","lat","lng","room_count","land_area_m2","land_area_known"]
     categorical_features=["property_type"]
     X=df[numeric_features+categorical_features].copy()
     feature_names=X.columns.tolist()
@@ -186,6 +188,10 @@ def get_splits():
     # y_tier_validation,validation_threshold=make_tier_label(y_validation,threshold)
     # y_tier_test,test_threshold=make_tier_label(y_test,threshold)
 
+    X_train["land_area_m2"]=X_train["land_area_m2"].fillna(0)
+    X_validation["land_area_m2"]=X_validation["land_area_m2"].fillna(0)
+    X_test["land_area_m2"]=X_test["land_area_m2"].fillna(0)
+    
     train_medians=X_train.median()
     X_train=X_train.fillna(train_medians)
     X_validation=X_validation.fillna(train_medians)
