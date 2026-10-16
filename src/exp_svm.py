@@ -432,23 +432,16 @@ def analyze_convergence(
     max_iters=20000,
     step=1000
 ):
-    iterations = list(range(step, max_iters + 1, step))
-    objectives = []
+    model = PegasosSVM(
+        lambda_=lambda_,
+        n_iters=max_iters,
+        random_state=42,
+        learning_rate="pegasos"
+    )
+    model.fit(X_train, y_train, history_interval=step)
 
-    for n_iter in iterations:
-        model = PegasosSVM(
-            lambda_=lambda_,
-            n_iters=n_iter,
-            random_state=42,
-            learning_rate="pegasos"
-        )
-
-        model.fit(X_train, y_train)
-
-        loss = model.objective(X_train, y_train)
-        objectives.append(loss)
-
-    return iterations, objectives
+    iterations, objectives = zip(*model.loss_history_)
+    return list(iterations), list(objectives)
 
 
 def plot_convergence(iterations, objectives):

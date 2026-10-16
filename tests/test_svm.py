@@ -1,6 +1,8 @@
 import unittest
 
 import numpy as np
+from sklearn.linear_model import SGDClassifier
+from sklearn.preprocessing import StandardScaler
 
 from src.svm import PegasosSVM, RFFPegasosSVM
 
@@ -56,6 +58,68 @@ class TestPegasosSVM(unittest.TestCase):
         self.assertEqual(first.b, second.b)
         np.testing.assert_array_equal(first.predict(self.X), second.predict(self.X))
         self.assertEqual(first.objective(self.X, self.y), second.objective(self.X, self.y))
+
+    def test_loss_history_checkpoints_preserve_training_results(self):
+        n_iters = 100
+        plain = PegasosSVM(
+            lambda_=0.01, n_iters=n_iters, random_state=42
+        ).fit(self.X, self.y)
+        tracked = PegasosSVM(
+            lambda_=0.01, n_iters=n_iters, random_state=42
+        ).fit(self.X, self.y, history_interval=30)
+
+        self.assertEqual(plain.loss_history_, [])
+        self.assertEqual(
+            [iteration for iteration, _ in tracked.loss_history_],
+            [0, 30, 60, 90, 100],
+        )
+        self.assertTrue(
+            np.all(np.isfinite([loss for _, loss in tracked.loss_history_]))
+        )
+        np.testing.assert_allclose(plain.w, tracked.w)
+        self.assertEqual(plain.b, tracked.b)
+        np.testing.assert_array_equal(plain.predict(self.X), tracked.predict(self.X))
+
+        for invalid_interval in (0, -1, 1.5, True):
+            with self.subTest(history_interval=invalid_interval):
+                with self.assertRaises(ValueError):
+                    PegasosSVM(n_iters=n_iters).fit(
+                        self.X, self.y, history_interval=invalid_interval
+                    )
+
+    def test_matches_sklearn_hinge_on_tiny_separable_data(self):
+        X_train = np.array([
+            [-2.0, -1.0], [-1.0, -2.0], [-2.0, -2.0], [-1.0, -1.0],
+            [2.0, 1.0], [1.0, 2.0], [2.0, 2.0], [1.0, 1.0],
+        ])
+        y_train = np.array([0, 0, 0, 0, 1, 1, 1, 1])
+        X_val = np.array([
+            [-3.0, -1.0], [-1.0, -3.0], [-3.0, -2.0], [-2.0, -3.0],
+            [3.0, 1.0], [1.0, 3.0], [3.0, 2.0], [2.0, 3.0],
+        ])
+        y_val = np.array([0, 0, 0, 0, 1, 1, 1, 1])
+
+        scaler = StandardScaler().fit(X_train)
+        X_train_scaled = scaler.transform(X_train)
+        X_val_scaled = scaler.transform(X_val)
+
+        pegasos = PegasosSVM(
+            lambda_=0.01, n_iters=2000, random_state=42
+        ).fit(X_train_scaled, y_train)
+        sklearn_svm = SGDClassifier(
+            loss="hinge",
+            alpha=0.01,
+            max_iter=5000,
+            tol=1e-4,
+            random_state=42,
+        ).fit(X_train_scaled, y_train)
+
+        pegasos_accuracy = np.mean(pegasos.predict(X_val_scaled) == y_val)
+        sklearn_accuracy = np.mean(sklearn_svm.predict(X_val_scaled) == y_val)
+
+        self.assertGreaterEqual(pegasos_accuracy, 0.875)
+        self.assertGreaterEqual(sklearn_accuracy, 0.875)
+        self.assertLessEqual(abs(pegasos_accuracy - sklearn_accuracy), 0.125)
 
     def test_invalid_inputs(self):
         with self.assertRaises(ValueError):
