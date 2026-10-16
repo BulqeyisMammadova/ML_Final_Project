@@ -33,6 +33,7 @@ class PegasosSVM:
         self.learning_rate = learning_rate
         self.w = None
         self.b = 0.0
+        self.loss_history_ = []
 
     @staticmethod
     def _to_pm1(y):
@@ -49,9 +50,18 @@ class PegasosSVM:
             return 1.0 / (self.lambda_ * np.sqrt(t))
         raise ValueError("learning_rate must be 'pegasos' or 'sqrt'")
 
-    def fit(self, X, y):
+    def fit(self, X, y, history_interval=None):
+        self.loss_history_ = []
+        if history_interval is not None and (
+            not isinstance(history_interval, (int, np.integer))
+            or isinstance(history_interval, (bool, np.bool_))
+            or history_interval <= 0
+        ):
+            raise ValueError("history_interval must be a positive integer or None")
+
         X = np.asarray(X, dtype=float)
-        y = self._to_pm1(y)
+        y_original = np.asarray(y)
+        y = self._to_pm1(y_original)
         if X.ndim != 2 or X.shape[0] == 0 or X.shape[0] != len(y):
             raise ValueError("X must be a nonempty 2D array matching y")
         if self.lambda_ <= 0 or self.n_iters <= 0:
@@ -62,6 +72,8 @@ class PegasosSVM:
         n_samples, n_features = X.shape
         self.w = np.zeros(n_features)
         self.b = 0.0
+        if history_interval is not None:
+            self.loss_history_.append((0, self.objective(X, y_original)))
         rng = np.random.default_rng(self.random_state)
 
         for t in range(1, self.n_iters + 1):
@@ -74,6 +86,10 @@ class PegasosSVM:
             if margin < 1.0:
                 self.w += eta * yi * xi
                 self.b += eta * yi
+            if history_interval is not None and (
+                t % history_interval == 0 or t == self.n_iters
+            ):
+                self.loss_history_.append((t, self.objective(X, y_original)))
         return self
 
     def decision_function(self, X):

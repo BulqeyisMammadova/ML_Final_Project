@@ -120,13 +120,42 @@ Describe your impurity criteria (Gini / entropy / MSE reduction), the
 split search, recursion, leaf rule, and hyperparameters.
 
 \subsection{Support-vector machine (from scratch)}
-State the objective and the Pegasos update you implemented:
+We map the standard and premium labels to $-1$ and $+1$, respectively,
+and minimize the regularized hinge-loss objective:
 \begin{equation}
   J(\mathbf{w},b)=\tfrac{\lambda}{2}\lVert\mathbf{w}\rVert^{2}
   +\tfrac{1}{n}\sum_{i=1}^{n}\max\!\big(0,\,1-y_i(\mathbf{w}^{\top}\mathbf{x}_i+b)\big).
 \end{equation}
-Explain the learning-rate schedule, feature scaling, and your non-linear
-extension (kernelised Pegasos or random Fourier features), if any.
+For the linear model, the margin width is $2/\lVert\mathbf{w}\rVert_2$.
+We identify training points on or inside the margin as support vectors:
+\begin{equation}
+  y_i(\mathbf{w}^{\top}\mathbf{x}_i+b)\leq 1.
+\end{equation}
+At update $t$, Pegasos samples training example $i_t$ and uses
+$\eta_t=1/(\lambda t)$. Its stochastic updates are
+\begin{align}
+  \mathbf{w}_t &= (1-\eta_t\lambda)\mathbf{w}_{t-1}
+    +\eta_t y_{i_t}\mathbf{x}_{i_t}\,
+      \mathbb{1}\!\left[y_{i_t}(\mathbf{w}_{t-1}^{\top}\mathbf{x}_{i_t}
+      +b_{t-1})<1\right],\\
+  b_t &= b_{t-1}+\eta_t y_{i_t}\,
+      \mathbb{1}\!\left[y_{i_t}(\mathbf{w}_{t-1}^{\top}\mathbf{x}_{i_t}
+      +b_{t-1})<1\right].
+\end{align}
+The bias is unregularized: it is updated on margin violations but is not
+multiplied by the weight-decay factor. For the nonlinear model, random
+Fourier features approximate an RBF kernel:
+\begin{equation}
+  \begin{aligned}
+    \mathbf{z}(\mathbf{x}) &= [z_j(\mathbf{x})]_{j=1}^{D},\\
+    z_j(\mathbf{x}) &= \sqrt{\tfrac{2}{D}}\cos(\phi_j(\mathbf{x})),\\
+    \phi_j(\mathbf{x}) &= \boldsymbol{\omega}_j^{\top}\mathbf{x}+c_j,\\
+    \boldsymbol{\omega}_j &\sim \mathcal{N}(0,2\gamma\mathbf{I}),\\
+    c_j &\sim \mathcal{U}(0,2\pi), \quad j=1,\ldots,D.
+  \end{aligned}
+\end{equation}
+Pegasos is applied to $\mathbf{z}(\mathbf{x})$; its transformed-space
+coefficients are not interpreted as original-feature importance.
 
 \section{Experimental Setup}
 All experiments used seed 42. After deduplication, 70\% of the rows were
@@ -148,6 +177,20 @@ the metrics. We compared the trees with matched scikit-learn trees and
 the linear Pegasos SVM with a scaled SGD hinge-loss classifier. Wall-clock
 fit and prediction times were measured separately and recorded by the
 reproduction script; they depend on the machine.
+
+\subsection{SVM protocol}
+We used the deterministic split with seed 42. Missing feature values were
+imputed using training-set medians, the premium threshold was the median
+training price, and a $\texttt{StandardScaler}$ was fitted on training
+features only and then applied to validation features. The five numeric
+inputs were area, floor number, total floors, latitude, and longitude.
+Both models used the same transformed training and validation partitions.
+Linear Pegasos used $\lambda=0.01$, $3n_{\mathrm{train}}$ updates, and
+seed 42. The RFF model used $\gamma=1$, $D=500$, $\lambda=10^{-4}$,
+20,000 updates, and seed 42. Reported model metrics and error analyses
+below are validation results. The convergence trace uses the training
+objective, recorded every 1,000 updates during one 20,000-update run with
+$\lambda=0.01$.
 
 \section{Results}
 The reproducible run retained 64,454 unique listings. The seeded split
