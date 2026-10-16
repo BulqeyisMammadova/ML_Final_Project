@@ -1,0 +1,118 @@
+Task A (regression):
+  max_depth=4     min_samples_leaf=  1   val R2=0.537
+  max_depth=4     min_samples_leaf= 10   val R2=0.537
+  max_depth=4     min_samples_leaf= 20   val R2=0.537
+  max_depth=4     min_samples_leaf= 50   val R2=0.537
+  max_depth=6     min_samples_leaf=  1   val R2=0.645
+  max_depth=6     min_samples_leaf= 10   val R2=0.646
+  max_depth=6     min_samples_leaf= 20   val R2=0.647
+  max_depth=6     min_samples_leaf= 50   val R2=0.646
+  max_depth=8     min_samples_leaf=  1   val R2=0.682
+  max_depth=8     min_samples_leaf= 10   val R2=0.692
+  max_depth=8     min_samples_leaf= 20   val R2=0.690
+  max_depth=8     min_samples_leaf= 50   val R2=0.688
+  max_depth=10    min_samples_leaf=  1   val R2=0.695
+  max_depth=10    min_samples_leaf= 10   val R2=0.714
+  max_depth=10    min_samples_leaf= 20   val R2=0.711
+  max_depth=10    min_samples_leaf= 50   val R2=0.703
+  max_depth=12    min_samples_leaf=  1   val R2=0.679
+  max_depth=12    min_samples_leaf= 10   val R2=0.726
+  max_depth=12    min_samples_leaf= 20   val R2=0.722
+  max_depth=12    min_samples_leaf= 50   val R2=0.712
+  max_depth=None  min_samples_leaf=  1   val R2=0.655
+  max_depth=None  min_samples_leaf= 10   val R2=0.735
+  max_depth=None  min_samples_leaf= 20   val R2=0.729
+  max_depth=None  min_samples_leaf= 50   val R2=0.716
+  -> Ən yaxşı: {'max_depth': None, 'min_samples_leaf': 10}, val R2=0.735
+  bizim:   val R2=0.735  fit=0.70s  predict=0.009s  leaves=3527
+  sklearn: val R2=0.736  fit=0.11s  predict=0.001s  leaves=3524
+  Proqnozların 92.6%-i eynidir. sklearn 6 dəfə sürətlidir.
+  Feature importance:
+    area_m2         0.564
+    lat             0.131
+    lng             0.128
+    property_type_Torpaq 0.070
+    land_area_m2    0.068
+    property_type_Həyət evi/Bağ evi 0.012
+    property_type_Obyekt 0.009
+    total_floors    0.006
+    floor_number    0.005
+    room_count      0.004
+    property_type_Qaraj 0.002
+    property_type_Yeni tikili 0.001
+    property_type_Köhnə tikili 0.001
+    property_type_Ofis 0.000
+  Qrafik saxlanıldı: report/figures/tree_importance_regression.png
+  Orta faiz səhvi (median): 10.3 %
+  Qiymət qrupuna görə səhv:
+            73 -    129,000 AZN:  median səhv =  13.7%
+       129,000 -    180,000 AZN:  median səhv =   7.4%
+       180,000 -    250,000 AZN:  median səhv =   8.5%
+       250,000 -    370,000 AZN:  median səhv =   8.8%
+       370,000 - 26,000,000 AZN:  median səhv =  17.1%
+  Ən böyük 5 səhv:
+    sahə= 250000 m²   əsl=         800   proqnoz=11,431,894   səhv=1428887%
+    sahə=10000000 m²   əsl=       3,000   proqnoz= 5,292,647   səhv=176322%
+    sahə=     90 m²   əsl=          73   proqnoz=    83,983   səhv=114945%
+    sahə=  20000 m²   əsl=      19,000   proqnoz=11,564,639   səhv= 60767%
+    sahə=  10000 m²   əsl=       3,000   proqnoz=   547,614   səhv= 18154%
+  Qrafik saxlanıldı: report/figures/tree_errors_regression.png
+Bonus: random forest (Task A):
+  tək ağac:       val R2=0.735
+  bizim meşə:     val R2=0.679 (1 ağac) -> 0.799 (50 ağac), fit=24s
+  sklearn meşəsi: val R2=0.785, fit=0.8s
+  Qrafik saxlanıldı: report/figures/forest_n_trees.png
+Task B (classification):
+  max_depth=4     min_samples_leaf=  1   val F1=0.868
+  max_depth=4     min_samples_leaf= 10   val F1=0.868
+  max_depth=4     min_samples_leaf= 20   val F1=0.868
+  max_depth=4     min_samples_leaf= 50   val F1=0.868
+  max_depth=6     min_samples_leaf=  1   val F1=0.889
+  max_depth=6     min_samples_leaf= 10   val F1=0.889
+  max_depth=6     min_samples_leaf= 20   val F1=0.889
+  max_depth=6     min_samples_leaf= 50   val F1=0.888
+  max_depth=8     min_samples_leaf=  1   val F1=0.900
+  max_depth=8     min_samples_leaf= 10   val F1=0.903
+  max_depth=8     min_samples_leaf= 20   val F1=0.901
+  max_depth=8     min_samples_leaf= 50   val F1=0.899
+  max_depth=10    min_samples_leaf=  1   val F1=0.909
+  max_depth=10    min_samples_leaf= 10   val F1=0.909
+  max_depth=10    min_samples_leaf= 20   val F1=0.907
+  max_depth=10    min_samples_leaf= 50   val F1=0.901
+  max_depth=12    min_samples_leaf=  1   val F1=0.910
+  max_depth=12    min_samples_leaf= 10   val F1=0.909
+  max_depth=12    min_samples_leaf= 20   val F1=0.908
+  max_depth=12    min_samples_leaf= 50   val F1=0.902
+  max_depth=None  min_samples_leaf=  1   val F1=0.909
+  max_depth=None  min_samples_leaf= 10   val F1=0.910
+  max_depth=None  min_samples_leaf= 20   val F1=0.908
+  max_depth=None  min_samples_leaf= 50   val F1=0.902
+  -> Ən yaxşı: {'max_depth': 12, 'min_samples_leaf': 1}, val F1=0.910
+  bizim:   val F1=0.910  fit=0.50s  predict=0.007s  leaves=1148
+  sklearn: val F1=0.910  fit=0.10s  predict=0.001s  leaves=1144
+  Proqnozların 99.5%-i eynidir. sklearn 5 dəfə sürətlidir.
+  Feature importance:
+    area_m2         0.535
+    lng             0.189
+    lat             0.153
+    land_area_m2    0.055
+    floor_number    0.021
+    total_floors    0.015
+    property_type_Obyekt 0.010
+    property_type_Yeni tikili 0.008
+    room_count      0.007
+    property_type_Köhnə tikili 0.004
+    property_type_Torpaq 0.002
+    property_type_Ofis 0.000
+    property_type_Qaraj 0.000
+    property_type_Həyət evi/Bağ evi 0.000
+  Qrafik saxlanıldı: report/figures/tree_importance_classification.png
+  Premium həddi: 210,000 AZN
+  Həddə yaxın evlər (±10%):   1145 ev, səhv = 31.9%
+  Həddən uzaq evlər:          8523 ev, səhv = 5.9%
+Bonus: random forest (Task B):
+  meşə: val F1=0.933  ROC-AUC=0.984
+TEST Task A:  MAE=0.202  RMSE=0.375  R2=0.781
+TEST Forest:  MAE=0.170  RMSE=0.329  R2=0.832
+TEST Task B:  precision=0.903  recall=0.913  F1=0.908  ROC-AUC=0.938
+TEST Forest B: precision=0.935  recall=0.933  F1=0.934  ROC-AUC=0.984
