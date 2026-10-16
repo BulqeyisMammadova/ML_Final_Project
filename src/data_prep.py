@@ -93,6 +93,12 @@ def clean(df):
     df=df.drop(columns=["mortgage"])
     df=df.drop(columns=["repair"])
     df=df.drop(columns=["bill_of_sale"])
+
+    df["room_count"]=df["Otaq sayı"].copy()
+    df["property_type"]=df["Kateqoriya"].copy()
+
+    df["land_area_known"]=df["land_area_m2"].notna().astype(int)
+
     return df 
 
 def make_features(df):
@@ -103,9 +109,10 @@ def make_features(df):
     Return (X, y, feature_names).
     """
     y=df["price"].copy()
-    numeric_features=["area_m2","floor_number","total_floors","lat","lng"]
-    X=df[numeric_features].copy()
-    feature_names=numeric_features.copy()
+    numeric_features=["area_m2","floor_number","total_floors","lat","lng","room_count","land_area_m2"]
+    categorical_features=["property_type"]
+    X=df[numeric_features+categorical_features].copy()
+    feature_names=X.columns.tolist()
     return X, y, feature_names
 
 
@@ -155,7 +162,15 @@ def standardize(X_tr, *others):
     Return the scaled arrays in the same order as given.
     (Needed for the SVM; trees don't require it.)
     """
-    raise NotImplementedError("TODO: standardize using train stats")
+    train_mean=X_tr.mean()
+    train_std=X_tr.std(ddof=0).replace(0,1)
+    X_tr_scaled=(X_tr-train_mean)/train_std
+    other_scoled=list()
+    for element in others:
+        scaled_element=(element-train_mean)/train_std
+        other_scoled.append(scaled_element)
+    return (X_tr_scaled, *other_scoled)
+
 
 
 def get_splits():
@@ -163,9 +178,19 @@ def get_splits():
     df=clean(df)
     X, y, feature_names=make_features(df)
     X_train,y_train,X_validation,y_validation,X_test,y_test=train_val_test_split(X,y)
+
+    X_train=pd.get_dummies(X_train,columns=["property_type"],dtype=int)
+    X_validation=pd.get_dummies(X_validation,columns=["property_type"],dtype=int)
+    X_validation=X_validation.reindex(columns=X_train.columns,fill_value=0)
+    X_test=pd.get_dummies(X_test,columns=["property_type"],dtype=int)
+    X_test=X_test.reindex(columns=X_train.columns,fill_value=0)
     # y_tier_train,threshold=make_tier_label(y_train)
     # y_tier_validation,validation_threshold=make_tier_label(y_validation,threshold)
     # y_tier_test,test_threshold=make_tier_label(y_test,threshold)
+
+    X_train["land_area_m2"]=X_train["land_area_m2"].fillna(0)
+    X_validation["land_area_m2"]=X_validation["land_area_m2"].fillna(0)
+    X_test["land_area_m2"]=X_test["land_area_m2"].fillna(0)
 
     train_medians=X_train.median()
     X_train=X_train.fillna(train_medians)
