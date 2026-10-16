@@ -64,6 +64,7 @@ class DecisionTree:
         min_samples_split: int = 2,
         min_samples_leaf: int = 1,
         min_impurity_decrease: float = 0.0,
+        max_features: int | None = None,
         random_state: int = 42,
     ):
         self.task = task
@@ -71,6 +72,7 @@ class DecisionTree:
         self.max_depth = max_depth
         self.min_samples_split = min_samples_split
         self.min_samples_leaf = min_samples_leaf
+        self.max_features = max_features
         self.min_impurity_decrease = min_impurity_decrease
         self.random_state = random_state
         self.root: Node | None = None
@@ -150,8 +152,13 @@ class DecisionTree:
 
         n_left = np.arange(1, n_samples)
         n_right = n_samples - n_left
+        if self.max_features is None:
+            features = range(n_features)
+        else:
+            features = self._rng.choice(n_features, size=self.max_features, replace=False)
 
-        for j in range(n_features):
+
+        for j in features:
             order = np.argsort(X[:, j], kind="mergesort")
             x_sorted = X[order, j]
 
@@ -239,6 +246,7 @@ class DecisionTree:
             self.classes_ = np.unique(y)
         self._n_total = len(y)
         self.n_features_ = X.shape[1]
+        self._rng = np.random.default_rng(self.random_state)
         self.root = self._grow(X, y, depth=0)
         self.feature_importances_ = self._compute_importances()
         return self
