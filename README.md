@@ -15,9 +15,12 @@ Exactly **three** things; **one member submits** for the whole team:
 3. **Slides PDF**.
 
 Keep `contribution_report.md` in the repo root (checked at the demo).
-`report/report_draft.pdf` is a review copy of the current report. Confirm
-all author names, the contribution percentages and the team's final text,
-then compile `report/report.tex` again for the submitted PDF.
+`report/report_draft.pdf` is a review copy of the current report.
+`presentation/team_review_draft_v2.pdf` is the complete nine-slide review
+deck. Confirm all author names, the contribution percentages and the team's
+final text before replacing the review notice and producing submission PDFs.
+The repository owner or agreed submitter must then create `v1.0-final` from
+the approved commit and submit the three items on Moodle.
 
 ## The two tasks
 - **Task A — Regression:** fit a tree to `log1p(price)` and convert predictions
@@ -90,7 +93,7 @@ and figures below always come from `src.run_all`.
 
 ## Current full-dataset result
 
-The 16 October 2026 run used 64,454 deduplicated listings and 14 encoded
+The 17 October 2026 re-run used 64,454 deduplicated listings and 14 encoded
 features: area, floors, coordinates, room count, land area and one-hot
 property type. The category vocabulary was fitted on training rows. The split
 has 45,118 training, 9,667 validation and 9,669 test rows. The premium

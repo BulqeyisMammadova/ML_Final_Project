@@ -1,18 +1,14 @@
 # Presentation
 
-`member4_results.pptx` is Bakir's editable two-slide results contribution.
-`member4_results.pdf` is its verified PDF export. Integrate these two slides
-into the team's final deck, then export and submit **one complete slides PDF**
-on Moodle. This two-page contribution is not the complete team presentation.
+`team_review_draft_v2.pptx` is the unified, editable nine-slide presentation.
+`team_review_draft_v2.pdf` is its visually checked PDF export. Its common-split
+numbers come from `python -m src.run_all`; separate tree and SVM experiment
+slides use different validation splits, so their scores are not combined with
+the headline comparison. The deck remains a **review draft** until the team
+confirms full author names and the contribution split. Then remove the review
+notice, export the approved slides PDF, and have one member submit it on Moodle.
 
-Suggested flow (~8–10 slides, defended live after the deadline):
-1. Problem & dataset (bina.az: price regression + derived price tier).
-2. Cleaning & features; the leakage columns you removed.
-3. Your decision tree (impurity, split search, hyperparameters).
-4. Your Pegasos SVM (hinge primal, update rule, non-linear extension).
-5. Experimental setup (metrics, seeds, baselines).
-6. Results table + one strong figure.
-7. Where the models fail + honest limitations.
-8. Who did what (contribution) & what you'd do next.
+`member4_results.pptx` and `.pdf` are Bakir's original two-slide contribution.
+`SVM_2_Slides_Light.pptx` is Ulvi's separate experiment contribution.
 
 Every team member should be able to explain any part of the code.
