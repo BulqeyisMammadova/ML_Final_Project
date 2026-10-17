@@ -1,0 +1,64 @@
+max_depth= 1   train R²=0.202   val R²=0.204
+max_depth= 2   train R²=0.298   val R²=0.294
+max_depth= 3   train R²=0.468   val R²=0.450
+max_depth= 4   train R²=0.566   val R²=0.537
+max_depth= 5   train R²=0.640   val R²=0.599
+max_depth= 6   train R²=0.690   val R²=0.645
+max_depth= 7   train R²=0.732   val R²=0.661
+max_depth= 8   train R²=0.768   val R²=0.682
+max_depth= 9   train R²=0.804   val R²=0.684
+max_depth=10   train R²=0.836   val R²=0.695
+max_depth=11   train R²=0.864   val R²=0.694
+max_depth=12   train R²=0.888   val R²=0.679
+max_depth=13   train R²=0.909   val R²=0.678
+max_depth=14   train R²=0.928   val R²=0.678
+max_depth=15   train R²=0.944   val R²=0.676
+max_depth=16   train R²=0.957   val R²=0.673
+Ən yaxşı max_depth (validation-a görə): 10
+Qrafik saxlanıldı: report/figures/tree_max_depth_regression.png
+min_samples_leaf=  1   train R²=0.999   val R²=0.655   leaf sayı=36030
+min_samples_leaf=  5   train R²=0.897   val R²=0.720   leaf sayı=7204
+min_samples_leaf= 10   train R²=0.857   val R²=0.735   leaf sayı=3527
+min_samples_leaf= 20   train R²=0.820   val R²=0.729   leaf sayı=1727
+min_samples_leaf= 50   train R²=0.774   val R²=0.716   leaf sayı=699
+min_samples_leaf=100   train R²=0.730   val R²=0.681   leaf sayı=348
+min_samples_leaf=200   train R²=0.701   val R²=0.665   leaf sayı=170
+min_samples_leaf=500   train R²=0.640   val R²=0.620   leaf sayı=70
+Ən yaxşı min_samples_leaf (validation-a görə): 10
+Qrafik saxlanıldı: report/figures/tree_min_samples_leaf_regression.png
+premium payı (train): 0.495
+gini    max_depth= 1   precision=0.753  recall=0.881  F1=0.812  ROC-AUC=0.800
+gini    max_depth= 2   precision=0.847  recall=0.738  F1=0.789  ROC-AUC=0.864
+gini    max_depth= 3   precision=0.874  recall=0.767  F1=0.817  ROC-AUC=0.897
+gini    max_depth= 4   precision=0.859  recall=0.878  F1=0.868  ROC-AUC=0.925
+gini    max_depth= 5   precision=0.880  recall=0.893  F1=0.886  ROC-AUC=0.942
+gini    max_depth= 6   precision=0.898  recall=0.880  F1=0.889  ROC-AUC=0.951
+gini    max_depth= 7   precision=0.895  recall=0.899  F1=0.897  ROC-AUC=0.956
+gini    max_depth= 8   precision=0.880  recall=0.922  F1=0.900  ROC-AUC=0.960
+gini    max_depth= 9   precision=0.897  recall=0.913  F1=0.905  ROC-AUC=0.960
+gini    max_depth=10   precision=0.898  recall=0.920  F1=0.909  ROC-AUC=0.956
+gini    max_depth=11   precision=0.905  recall=0.915  F1=0.910  ROC-AUC=0.950
+gini    max_depth=12   precision=0.902  recall=0.919  F1=0.910  ROC-AUC=0.942
+gini    max_depth=13   precision=0.904  recall=0.920  F1=0.911  ROC-AUC=0.932
+gini    max_depth=14   precision=0.904  recall=0.916  F1=0.910  ROC-AUC=0.928
+gini    max_depth=15   precision=0.907  recall=0.918  F1=0.912  ROC-AUC=0.920
+gini    max_depth=16   precision=0.907  recall=0.916  F1=0.912  ROC-AUC=0.913
+entropy max_depth= 1   precision=0.753  recall=0.881  F1=0.812  ROC-AUC=0.800
+entropy max_depth= 2   precision=0.753  recall=0.881  F1=0.812  ROC-AUC=0.867
+entropy max_depth= 3   precision=0.862  recall=0.715  F1=0.782  ROC-AUC=0.892
+entropy max_depth= 4   precision=0.848  recall=0.833  F1=0.841  ROC-AUC=0.923
+entropy max_depth= 5   precision=0.848  recall=0.890  F1=0.868  ROC-AUC=0.942
+entropy max_depth= 6   precision=0.875  recall=0.888  F1=0.881  ROC-AUC=0.953
+entropy max_depth= 7   precision=0.886  recall=0.901  F1=0.893  ROC-AUC=0.960
+entropy max_depth= 8   precision=0.891  recall=0.910  F1=0.901  ROC-AUC=0.963
+entropy max_depth= 9   precision=0.897  recall=0.914  F1=0.906  ROC-AUC=0.963
+entropy max_depth=10   precision=0.904  recall=0.914  F1=0.909  ROC-AUC=0.962
+entropy max_depth=11   precision=0.899  recall=0.920  F1=0.909  ROC-AUC=0.958
+entropy max_depth=12   precision=0.912  recall=0.911  F1=0.912  ROC-AUC=0.953
+entropy max_depth=13   precision=0.913  recall=0.914  F1=0.913  ROC-AUC=0.950
+entropy max_depth=14   precision=0.910  recall=0.919  F1=0.915  ROC-AUC=0.945
+entropy max_depth=15   precision=0.915  recall=0.915  F1=0.915  ROC-AUC=0.939
+entropy max_depth=16   precision=0.913  recall=0.919  F1=0.916  ROC-AUC=0.935
+Ən yaxşı gini: max_depth=15, val F1=0.912
+Ən yaxşı entropy: max_depth=16, val F1=0.916
+Qrafik saxlanıldı: report/figures/tree_gini_vs_entropy.png

@@ -445,6 +445,6 @@ def task_final(run_test=False):
 if __name__ == "__main__":
     # task_a_first_try()
     # task_a_max_depth() 
-    #task_a_min_samples_leaf()
-    #task_b_gini_vs_entropy()
-    task_final()
+    # task_a_min_samples_leaf()
+    # task_b_gini_vs_entropy()
+    task_final(run_test=True)
