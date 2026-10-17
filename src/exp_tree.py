@@ -377,12 +377,12 @@ def forest_curve(X_tr, y_tr, X_val, y_val, single_tree_score):
 
     
     plt.figure(figsize=(7, 4.2))
-    plt.plot(n_trees, scores, linewidth=2, color="#2a78d6", label="bizim random forest")
-    plt.axhline(single_tree_score, color="gray", linestyle="--", label="tək ağac (9.6)")
+    plt.plot(n_trees, scores, linewidth=2, color="#2a78d6", label="our random forest")
+    plt.axhline(single_tree_score, color="gray", linestyle="--", label="single tree")
     plt.axhline(sk_score, color="#eb6834", linestyle=":", linewidth=2, label="sklearn random forest")
-    plt.xlabel("Ağac sayı")
+    plt.xlabel("Number of trees")
     plt.ylabel("R² (validation)")
-    plt.title("Random forest: ağac sayı artdıqca validation R²")
+    plt.title("Random forest: validation R² vs number of trees")
     plt.grid(alpha=0.25)
     plt.legend(frameon=False)
     os.makedirs("report/figures", exist_ok=True)

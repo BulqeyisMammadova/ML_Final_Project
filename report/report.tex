@@ -137,6 +137,21 @@ typical MAE but increased RMSE on unchanged validation data, so the
 integrated pipeline retains high-price observations rather than applying
 an unsupported universal outlier cutoff.
 
+Figure~\ref{fig:eda} shows the training-price distribution. Raw prices
+are strongly right-skewed (the mean is 1.57 times the median), while
+$\log(1+\text{price})$ is close to symmetric, which motivates fitting the
+regression models on the log scale. The median split gives an almost
+balanced tier label (49.5\,\% premium in training).
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{figures/eda_price.png}
+  \caption{Training-set sale prices (left, clipped at 1.5 million AZN for
+  readability) and $\log(1+\text{price})$ with the 210,000 AZN premium
+  threshold (right).}
+  \label{fig:eda}
+\end{figure}
+
 \begin{table}[t]
   \centering
   \caption{Dataset summary after cleaning.}
@@ -165,6 +180,26 @@ predicts its mean target, while a classification leaf predicts its
 majority class and exposes class-frequency probabilities. All split
 search, recursion and prediction are implemented in NumPy. Tree depth,
 leaf size and classification criterion are selected on validation data.
+
+To keep the split search fast, each feature is sorted once and the
+left/right class counts (or $\sum y$ and $\sum y^2$) for every candidate
+threshold are obtained with cumulative sums; this returns the same split
+as the naive search and was about $180\times$ faster on 3,000 rows.
+A unit test builds our tree and scikit-learn's on small tie-free
+examples (Gini, entropy and MSE) and checks that every split feature,
+threshold and leaf matches. On the real data we found that the midpoint
+$(a+b)/2$ of two almost equal coordinates can round to $b$ in floating
+point, sending every sample to one child and causing infinite recursion;
+as in scikit-learn we fall back to $a$ in that case and refuse empty
+splits, and a regression test guards it.
+
+\subsection{Random forest from our own trees (bonus)}
+For Problem~9 we averaged 50 of our own trees. Each tree is grown on a
+bootstrap sample of the training rows and considers only two randomly
+chosen features at each split (\texttt{max\_features}$=2$,
+\texttt{min\_samples\_leaf}$=5$); features that are constant in a node
+are skipped, as in scikit-learn. Regression averages the tree
+predictions; classification averages the leaf class frequencies.
 
 \subsection{Support-vector machine (from scratch)}
 We map the standard and premium labels to $-1$ and $+1$, respectively,
@@ -203,6 +238,12 @@ Fourier features approximate an RBF kernel:
 \end{equation}
 Pegasos is applied to $\mathbf{z}(\mathbf{x})$; its transformed-space
 coefficients are not interpreted as original-feature importance.
+We chose random Fourier features rather than kernelised Pegasos because
+a kernel model must store a coefficient per training example and
+evaluate kernels against the whole training set at prediction time,
+which is costly for 45,118 rows. With RFF the cost is fixed by $D$
+(256 components), the same linear Pegasos code is reused unchanged, and
+the bandwidth $\gamma$ remains a single tunable hyperparameter.
 
 \section{Experimental Setup}
 All experiments used seed 42. After deduplication, 70\% of the rows were
@@ -226,6 +267,16 @@ the metrics. We compared the trees with matched scikit-learn trees and
 the linear Pegasos SVM with a scaled SGD hinge-loss classifier. Wall-clock
 fit and prediction times were measured separately and recorded by the
 reproduction script; they depend on the machine.
+
+The headline numbers come from \texttt{python -m src.run\_all}. The
+additional overfitting curve, EDA figure and SVM schedule study use the
+same split and training/validation rows only
+(\texttt{python -m src.report\_extras}). The decision-tree experiments
+and the random forest bonus (\texttt{python -m src.exp\_tree}) and the
+geospatial bonus (\texttt{python geospatial\_bonus.py}) were developed
+earlier on the shared \texttt{get\_splits()} split with 9,668 validation
+and 9,668 test rows; their numbers are therefore reported separately and
+compared only with models trained on the same rows.
 
 \section{Results}
 The reproducible run retained 64,454 unique listings. The seeded split
@@ -292,21 +343,132 @@ threshold arithmetic and tie-breaking.
   \label{fig:validation}
 \end{figure}
 
+Figure~\ref{fig:overfit} shows the bias--variance story for the
+regression tree with no leaf-size limit. Training log-RMSE keeps falling
+with depth (0.68 at depth 2, 0.09 at depth 20), while validation
+log-RMSE is lowest at depth 10 (0.430) and then rises to 0.461: deeper
+trees memorise the training rows. Requiring at least 20 samples per leaf
+reduces this variance, and the selected depth-12, leaf-20 tree reaches
+validation log-RMSE 0.416.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.85\linewidth]{figures/tree_overfit_depth.png}
+  \caption{Overfitting of our regression tree: training and validation
+  log-RMSE as \texttt{max\_depth} grows (\texttt{min\_samples\_leaf}$=1$).
+  The widening gap after depth 10 is overfitting.}
+  \label{fig:overfit}
+\end{figure}
+
 The linear Pegasos model learned $\|w\|=3.464$ and a margin width of
 $2/\|w\|=0.577$ in standardised feature space. By the criterion
 $y_i(w^\top x_i+b)\leq1$, 23,410 of 45,118 training rows were support
 vectors. Its regularised hinge objective fell from 15.091 after 100
-updates to 0.580 after 20,000 updates, with stochastic fluctuations.
+updates to 0.580 after 20,000 updates, with stochastic fluctuations
+(Fig.~\ref{fig:svm-objective}).
 The RFF model improved the held-out F1 over linear Pegasos from 0.777
-to 0.806; its three-fold CV F1 was $0.807\pm0.006$.
+to 0.806; its three-fold CV F1 was $0.807\pm0.006$. On validation,
+$\gamma=1$ beat $\gamma=0.1$ (F1 0.796 vs.\ 0.785 at $\lambda=10^{-3}$).
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.9\linewidth]{figures/svm_objective.png}
+  \caption{Training objective $J(\mathbf{w},b)$ of the linear Pegasos SVM
+  ($\lambda=10^{-3}$) as updates are added.}
+  \label{fig:svm-objective}
+\end{figure}
+
+Table~\ref{tab:svm-lambda} shows how regularisation trades margin for
+fit. A larger $\lambda$ shrinks $\lVert\mathbf{w}\rVert$ and widens the
+margin (0.86 at $\lambda=10^{-2}$); a very small $\lambda$ gives a narrow
+margin (0.09) and the lowest validation F1, because with the
+$1/(\lambda t)$ step the early updates are huge and 20,000 updates are
+not enough to settle. Table~\ref{tab:svm-schedule} varies the number of
+updates and the learning-rate schedule at $\lambda=10^{-3}$. With the
+Pegasos step $1/(\lambda t)$, more updates lower the objective, widen
+the margin and raise validation F1. The slower-decaying
+$1/(\lambda\sqrt{t})$ step keeps taking large steps, so
+$\lVert\mathbf{w}\rVert$ stays large (margin below 0.05), the objective
+stays high and F1 is worse; we therefore kept the Pegasos schedule.
+
+\begin{table}[t]
+  \centering
+  \caption{Linear Pegasos: effect of $\lambda$ (20,000 updates,
+  validation set).}
+  \label{tab:svm-lambda}
+  \small
+  \begin{tabular}{@{}lrr@{}}
+    \toprule
+    $\lambda$ & Margin $2/\lVert\mathbf{w}\rVert$ & Val F1 \\
+    \midrule
+    $10^{-2}$ & 0.860 & 0.771 \\
+    $10^{-3}$ (selected) & 0.577 & 0.772 \\
+    $10^{-4}$ & 0.087 & 0.690 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}[t]
+  \centering
+  \caption{Linear Pegasos: number of updates and learning-rate schedule
+  ($\lambda=10^{-3}$, validation set).}
+  \label{tab:svm-schedule}
+  \small
+  \begin{tabular}{@{}lrrrr@{}}
+    \toprule
+    Step $\eta_t$ & Updates & Objective & Margin & Val F1 \\
+    \midrule
+    $1/(\lambda t)$ & 2,000 & 2.12 & 0.110 & 0.692 \\
+    $1/(\lambda t)$ & 5,000 & 0.75 & 0.269 & 0.727 \\
+    $1/(\lambda t)$ & 20,000 & 0.58 & 0.577 & 0.772 \\
+    $1/(\lambda\sqrt{t})$ & 2,000 & 43.94 & 0.016 & 0.652 \\
+    $1/(\lambda\sqrt{t})$ & 5,000 & 15.08 & 0.025 & 0.614 \\
+    $1/(\lambda\sqrt{t})$ & 20,000 & 12.20 & 0.048 & 0.604 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 The tree classifier had 470 false positives and 441 false negatives on
 the held-out set. Area contributed 54.3\% of its total impurity decrease,
-followed by longitude (19.2\%) and latitude (9.6\%). These are predictive
-associations, not causal effects. On this machine, our regression tree
-fitted in about 0.52 seconds versus 0.11 seconds for the matched
-scikit-learn tree. Exact fit and prediction timings for every model
-are in the generated summary JSON.
+followed by longitude (19.2\%) and latitude (9.6\%). For the regression
+tree, area contributed 59.0\%, latitude and longitude 11.8\% and 11.6\%,
+and the land property type and land area about 7\% each. These are
+predictive associations, not causal effects.
+
+Because the linear SVM is trained on standardised features, its weights
+are comparable in size. The largest positive weights are room count
+(2.28), the office type (1.25) and area (1.09); the garage type has the
+most negative weight ($-1.65$). Room count and area are strongly
+correlated, so the SVM splits their shared effect differently from the
+tree, which puts most importance on area. A linear boundary cannot
+represent the location effect as well as the tree, which partly explains
+the gap between linear Pegasos (F1 0.777) and the tree (F1 0.904).
+
+Table~\ref{tab:time} lists fit and prediction times. scikit-learn's
+compiled trees fit 3--5$\times$ faster than our NumPy trees; our linear
+Pegasos fit is as fast as \texttt{SGDClassifier}. The RFF model is
+slower to predict because every input is mapped to 256 cosine features.
+
+\begin{table}[t]
+  \centering
+  \caption{Fit and prediction time in seconds on the full training and
+  test sets (one run, machine-dependent).}
+  \label{tab:time}
+  \small
+  \begin{tabular}{@{}lrr@{}}
+    \toprule
+    Model & Fit (s) & Predict (s) \\
+    \midrule
+    Our tree, regression & 0.66 & 0.033 \\
+    sklearn tree, regression & 0.19 & 0.002 \\
+    Our tree, classification & 0.89 & 0.037 \\
+    sklearn tree, classification & 0.17 & 0.003 \\
+    Our linear Pegasos & 0.11 & $<$0.001 \\
+    sklearn SGD hinge & 0.18 & 0.003 \\
+    Our RFF Pegasos & 0.48 & 0.178 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 Price errors were much larger in the luxury tail. The 85 test listings
 above the training 99th-percentile price of 2.5 million AZN had mean
@@ -317,10 +479,52 @@ of those 85 tail listings, indicating systematic compression of high
 prices. The reproducible run also saves a log-scale actual-versus-predicted
 plot for detailed inspection.
 
+\emph{Random forest (bonus).} This experiment was run with the tree
+experiment script on its own seeded split (Task~A on $\log$ price), so
+we compare it only with a single tree on the same rows. On the held-out
+rows the forest raised $R^2$ from 0.781 to 0.832 (log-MAE 0.202 to
+0.170) on Task~A and F1 from 0.908 to 0.934 (ROC-AUC 0.938 to 0.984) on
+Task~B; scikit-learn's \texttt{RandomForestRegressor} with the same
+settings reached $R^2=0.810$. Validation $R^2$ grows quickly with the
+number of trees and flattens after about 30 (Fig.~\ref{fig:forest}).
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{figures/forest_n_trees.png}
+  \caption{Bonus: validation $R^2$ (log price) of our random forest as
+  trees are added, compared with a single tree and scikit-learn's
+  forest.}
+  \label{fig:forest}
+\end{figure}
+
+\emph{Geospatial clusters (bonus).} For Problem~10 we converted the
+coordinates of Baku listings to kilometres around the training median
+and fitted k-means on training coordinates only
+(Fig.~\ref{fig:geo}); validation and test listings were assigned to the
+learned centres. Validation silhouette scores were 0.667 for $k=2$ and
+0.581 for $k=5$; we show $k=5$ because it gives more geographic detail,
+not because it scored best. Median training prices differ strongly
+between clusters, from 88,000 AZN in the north-western cluster to
+250,000--265,000 AZN in the central and eastern clusters. This supports
+the large tree importance of latitude and longitude: location carries
+price information that the linear SVM can only use as a straight-line
+trend. The analysis is descriptive and does not change the models
+above.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.9\linewidth]{figures/geospatial_k5_clusters.png}
+  \caption{Bonus: k-means ($k=5$) clusters of Baku listings fitted on
+  training coordinates.}
+  \label{fig:geo}
+\end{figure}
+
 \section{Discussion and Limitations}
 Validation curves show that allowing deeper trees improves both tasks
-over the shallowest settings; minimum leaf size constrains their
-variance. Matching scikit-learn trees give nearly identical test scores,
+over the shallowest settings, but without a leaf-size limit validation
+error rises again after depth 10 while training error keeps falling;
+minimum leaf size constrains this variance, and averaging bootstrapped
+trees in the forest reduces it further. Matching scikit-learn trees give nearly identical test scores,
 while their training is faster in this environment. Our SVM's learned
 margin and performance depend on feature scaling, regularisation and
 the stochastic update budget. RFF improves premium-class F1, but its
@@ -340,16 +544,36 @@ optimisers do not have identical update rules.
 The from-scratch trees closely matched scikit-learn on both sale-price
 and price-tier tasks. The RFF Pegasos model improved tier F1 over its
 linear version, while luxury properties remained the main regression
-failure. Future work should verify suspicious listings, improve location
+failure. As bonuses, a random forest built from our own trees improved
+both tasks over a single tree, and k-means clusters of the coordinates
+showed clear location-based price segments. Future work should verify suspicious listings, improve location
 and property-condition features, and evaluate models on a later scrape
 to measure performance under market change.
+
+\section*{Team Contributions}
+\emph{Member 1 (nhesen):} data loading and cleaning
+(\texttt{data\_prep.py}), EDA, data-quality notes and the geospatial
+bonus. \emph{Member 2 (Bulqeyis Mammadova):} the from-scratch decision
+tree, its sklearn-matching tests, the tree experiments and figures, and
+the random forest bonus. \emph{Member 3 (Ulvi):} the from-scratch
+Pegasos SVM and its RFF extension, the SVM experiments and figures.
+\emph{Member 4 (Bakir Gahramanov):} the integrated reproduction runner,
+metrics, scikit-learn baselines, integration tests, README and report
+integration. Git history in the repository records each contribution.
 
 \section*{Tools and Acknowledgements}
 An AI coding assistant helped draft and test the integration runner,
 evaluation metrics, baseline comparisons, README, and this Results
-section. The dataset came from the Kaggle source~\cite{binaaz};
-scikit-learn was used only for comparison models and
-metric cross-checks.
+section. For the decision tree and the random forest, an AI assistant
+was used as a tutor: it explained the concepts and proposed code step by
+step; the team member typed, ran, tested and debugged the code and can
+explain it. An AI assistant also helped draft the additional report
+analyses (overfitting curve, SVM schedule study and bonus sections),
+which were checked against the generated results.
+% TODO Member 1 and Member 3: add one sentence each on how you used AI.
+The dataset came from the Kaggle source~\cite{binaaz};
+scikit-learn was used only for comparison models,
+metric cross-checks and the optional bonuses.
 
 % =====================================================================
 \begin{thebibliography}{9}
