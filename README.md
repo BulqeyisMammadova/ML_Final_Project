@@ -15,12 +15,20 @@ Exactly **three** things; **one member submits** for the whole team:
 3. **Slides PDF**.
 
 Keep `contribution_report.md` in the repo root (checked at the demo).
-`report/report_draft.pdf` is a review copy of the current report.
-`presentation/team_review_draft_v2.pdf` is the complete nine-slide review
-deck. Confirm all author names, the contribution percentages and the team's
-final text before replacing the review notice and producing submission PDFs.
-The repository owner or agreed submitter must then create `v1.0-final` from
-the approved commit and submit the three items on Moodle.
+The final report is `report/report.pdf` (source `report/report.tex`) and the
+final slides are `presentation/slides.pdf`. The submitted version is the Git
+tag `v1.0-final`.
+
+## Team
+
+| Member | Name | Main responsibility |
+|---|---|---|
+| 1 | Hasan Nurmammadov | Data cleaning, split, EDA, geospatial bonus |
+| 2 | Bulqeyis Mammadova | Decision tree, tree tests and experiments, random forest bonus, final report |
+| 3 | Ulvi Ismayilzade | Pegasos SVM, random Fourier features, SVM experiments |
+| 4 | Bakir Gahramanov | Integration runner, metrics, baselines, tests, README |
+
+Details are in `contribution_report.md`.
 
 ## The two tasks
 - **Task A — Regression:** fit a tree to `log1p(price)` and convert predictions
@@ -37,23 +45,29 @@ only. For the SVM you do **not** need a QP/SMO solver — use the
 ## Repo layout
 ```
 .
-├── README.md               # this file
-├── requirements.txt        # pinned environment used for the results
-├── .gitignore
-├── contribution_report.md  # who did what (keep in repo root)
-├── data/                   # dataset lives here (not committed — see data/README.md)
-├── src/                    # YOUR from-scratch code
-│   ├── data_prep.py        #   loading, cleaning, split, tier label
-│   ├── decision_tree.py    #   DecisionTree (Gini/entropy/MSE)
-│   ├── svm.py              #   PegasosSVM (hinge-loss sub-gradient)
-│   ├── baselines.py        #   scikit-learn reference models
-│   ├── evaluate.py         #   NumPy metrics + comparison table
-│   └── run_all.py          #   ONE command reproduces every number/figure
-├── tests/                  # metrics and integration checks
-├── report/                 # IEEE report (self-contained, no IEEEtran.cls)
-│   ├── report.tex
-│   └── figures/
-└── presentation/           # your slides PDF
+├── README.md                 # this file
+├── requirements.txt          # pinned environment used for the results
+├── contribution_report.md    # who did what (keep in repo root)
+├── data/                     # dataset lives here (not committed, see data/README.md)
+├── src/
+│   ├── data_prep.py          # loading, cleaning, split, tier label        (Member 1)
+│   ├── decision_tree.py      # DecisionTree: Gini / entropy / MSE          (Member 2)
+│   ├── test_tree.py          # 9 tree tests, incl. split-by-split sklearn match
+│   ├── exp_tree.py           # tree experiments, figures, random forest bonus
+│   ├── random_forest.py      # bonus: random forest from our own trees
+│   ├── svm.py                # PegasosSVM and RFFPegasosSVM                (Member 3)
+│   ├── exp_svm.py            # SVM experiments and figures
+│   ├── baselines.py          # scikit-learn reference models               (Member 4)
+│   ├── evaluate.py           # NumPy metrics
+│   ├── run_all.py            # ONE command reproduces every headline number
+│   └── report_extras.py      # extra report figures (EDA, overfitting, SVM schedule)
+├── run_svm_figures.py        # regenerates the six SVM figures
+├── run_svm_validation.py     # SVM validation study
+├── geospatial_bonus.py       # bonus: k-means clusters on coordinates      (Member 1)
+├── eda_*.py                  # exploratory plots
+├── tests/                    # 19 integration and unit tests
+├── report/                   # report.tex, report.pdf, figures/, tree result logs
+└── presentation/             # slides.pdf and earlier member slides
 ```
 
 ## Reproduce the results
@@ -71,13 +85,40 @@ python -m src.run_all
 
 The last command performs cleaning, a seeded 70/15/15 split, validation-only
 model selection, three-fold cross-validation on the training rows, and one
-final evaluation on the held-out test rows. It writes full metrics and
-selected settings to `results/summary.json` and five figures to
-`report/figures/`. Both locations are generated locally and ignored by Git.
-Use `python -m src.run_all --quick` for a 3,000-row smoke test; it writes to
-`results/summary_quick.json` and `report/figures/quick/` so it cannot replace
-the full results. Run
-`python -m unittest discover -s tests -v` for the integration checks.
+final evaluation on the held-out test rows (about 40 seconds). It writes full
+metrics and selected settings to `results/summary.json` (generated locally,
+ignored by Git). Use `python -m src.run_all --quick` for a 3,000-row smoke
+test.
+
+### Tests
+
+```bash
+python -m unittest discover -s tests -v   # 19 integration and SVM tests
+python -m src.test_tree                    # 9 decision-tree tests
+```
+
+### Every figure in the report
+
+All figures used by the report are committed in `report/figures/`. Each one
+can be regenerated with the command below (run from the repository root).
+
+| Command | Figures |
+|---|---|
+| `python -m src.run_all` | `tree_validation_report.png`, `svm_objective.png`, `validation_curves.png`, `test_confusion_matrices.png`, `regression_errors.png` |
+| `python -m src.report_extras` | `eda_price.png`, `tree_overfit_depth.png` (+ `results/report_extras.json`) |
+| `python -m src.exp_tree` | `tree_*.png` (7 tree figures), `forest_n_trees.png`; log in `report/results_tree.txt` |
+| `python run_svm_figures.py` | `svm_convergence.png`, `svm_margin_lambda.png`, `svm_linear_vs_rff.png`, `svm_*_confusion_matrix.png`, `svm_error_comparison.png` |
+| `python geospatial_bonus.py` | `geospatial_k5_clusters.png`, `geospatial_cluster_prices.png`, `geospatial_house_price_m2.png` (repo root; the k-means map is copied to `report/figures/`) |
+
+`src.exp_tree`, `run_svm_figures.py` and `geospatial_bonus.py` use the shared
+`get_splits()` split (see below), so their numbers are reported separately
+from the headline table.
+
+### Report
+
+```bash
+cd report && pdflatex report.tex && pdflatex report.tex
+```
 
 The premium threshold is the training-price median; validation and test
 labels use that fixed threshold. The holdout rows are stratified by this
@@ -91,7 +132,7 @@ The separate exploratory `get_splits()` helper uses an unstratified
 after fixing the training median, producing 9,667/9,669. Headline tables
 and figures below always come from `src.run_all`.
 
-## Current full-dataset result
+## Headline results (`python -m src.run_all`)
 
 The 17 October 2026 re-run used 64,454 deduplicated listings and 14 encoded
 features: area, floors, coordinates, room count, land area and one-hot
@@ -114,3 +155,13 @@ The 85 test listings priced above the training 99th percentile (2.5 million
 AZN) have an average absolute error of about 3.64 million AZN; this tail
 drives much of the price RMSE. Fit and predict times are saved in the JSON
 because they depend on the machine.
+
+## Bonuses
+
+- **Random forest from our own trees (Problem 9):** 50 trees, bootstrap and
+  two random features per split. On the `get_splits()` test rows it raises
+  R² (log price) from 0.781 to 0.832 and F1 from 0.908 to 0.934;
+  scikit-learn's forest with the same settings reaches R² 0.810.
+- **Geospatial clusters (Problem 10):** k-means (k = 5) on training
+  coordinates; median prices range from 88,000 to 265,000 AZN across clusters.
+  See `geospatial_bonus_report.md`.

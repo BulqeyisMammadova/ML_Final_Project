@@ -1,14 +1,18 @@
 # Presentation
 
-`team_review_draft_v2.pptx` is the unified, editable nine-slide presentation.
-`team_review_draft_v2.pdf` is its visually checked PDF export. Its common-split
-numbers come from `python -m src.run_all`; separate tree and SVM experiment
-slides use different validation splits, so their scores are not combined with
-the headline comparison. The deck remains a **review draft** until the team
-confirms full author names and the contribution split. Then remove the review
-notice, export the approved slides PDF, and have one member submit it on Moodle.
+`slides.pdf` is the final team presentation (28 slides) that is submitted on
+Moodle and used at the demo. It is ordered by member:
 
-`member4_results.pptx` and `.pdf` are Bakir's original two-slide contribution.
-`SVM_2_Slides_Light.pptx` is Ulvi's separate experiment contribution.
+1. Member 1 · Hasan Nurmammadov: data cleaning, split, geospatial bonus
+2. Member 2 · Bulqeyis Mammadova: decision tree, tests, experiments, random forest
+3. Member 3 · Ulvi Ismayilzade: Pegasos SVM and random Fourier features
+4. Member 4 · Bakir Gahramanov: integration, final results, error analysis
+
+Member 2 and Member 3 slides show their own experiments on the shared
+`get_splits()` split; the final comparison table (Member 4) comes from
+`python -m src.run_all`, so the two sets of numbers are not mixed.
+
+`member4_results.pptx`/`.pdf` and `SVM_2_Slides_Light.pptx` are earlier
+member drafts kept for reference.
 
 Every team member should be able to explain any part of the code.
